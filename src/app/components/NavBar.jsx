@@ -19,7 +19,9 @@ const NavBar = () => {
         setUsername(userData.username);
       } catch (error) {
         console.error("Error fetching user:", error);
-        router.push("/");
+
+        // Redirect to login with error message
+        router.push("/?error=relogin");
       } finally {
         setIsLoading(false);
       }
@@ -63,7 +65,7 @@ const NavBar = () => {
       >
         {!isLoading && (
           <span className="text-md text-slate-950 truncate max-w-[200px]">
-            Hello, {username}!
+            Hello, {username} !
           </span>
         )}
         <button

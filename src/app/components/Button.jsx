@@ -1,9 +1,16 @@
 "use client";
 import React from "react";
 
-const Button = ({ onClick, text, className, disabled = false }) => {
+const Button = ({
+  onClick,
+  text,
+  className = "",
+  disabled = false,
+  type = "button", // 🛠️ Default to "button" to prevent unintended submits
+}) => {
   return (
     <button
+      type={type}
       onClick={onClick}
       className={`${className} ${
         disabled ? "bg-gray-300 cursor-not-allowed" : ""

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import LoginInput from "@/app/components/LoginInput";
 import LoginButton from "@/app/components/LoginButton";
 import { useRouter } from "next/navigation";
@@ -14,6 +14,16 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    // Check for re-login error in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("error") === "relogin") {
+      setError("Please Re-Login");
+      // Clear the error from URL
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

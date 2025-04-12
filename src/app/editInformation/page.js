@@ -1,24 +1,161 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
+import ConfirmationPopup from "../components/ConfirmationPopup";
 
 export default function EditProfilePage() {
-  const [name, setName] = useState("User Name");
-  const [email, setEmail] = useState("user@example.com");
-  const [telephone, setTelephone] = useState("123-456-7890");
-  const [address, setAddress] = useState("123 Street, City, Country");
-  const [bio, setBio] = useState("This is my bio.");
+  const router = useRouter();
+  const [userData, setUserData] = useState({
+    username: "",
+    email: "",
+    telephone: "",
+    address: "",
+    bio: "",
+    role: "student",
+  });
+  const [originalData, setOriginalData] = useState(null);
   const [changePassword, setChangePassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [profilePicture, setProfilePicture] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [confirmModal, setConfirmModal] = useState({ show: false, type: null });
+
+  const hasUnsavedChanges = () => {
+    if (!originalData) return false;
+    const userDataChanged =
+      userData.username !== originalData.username ||
+      userData.email !== originalData.email ||
+      userData.telephone !== originalData.telephone ||
+      userData.address !== originalData.address ||
+      userData.bio !== originalData.bio;
+    const passwordChanged =
+      changePassword &&
+      (newPassword.trim() !== "" || confirmNewPassword.trim() !== "");
+    const pictureChanged = profilePicture !== null;
+    return userDataChanged || passwordChanged || pictureChanged;
+  };
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch("/api/user");
+        if (!response.ok) throw new Error("Failed to fetch user data");
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        const fetchedData = {
+          username: data.username,
+          email: data.email,
+          telephone: data.telephone || "",
+          address: data.address || "",
+          bio: data.bio || "",
+          role: data.role || "student",
+        };
+
+        setUserData(fetchedData);
+        setOriginalData(fetchedData);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        setError(error.message);
+        router.push("/?error=relogin");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [router]);
+
+  const commitSave = async () => {
+    setError("");
+
+    if (changePassword) {
+      if (!newPassword || !confirmNewPassword) {
+        setError("Please fill in both password fields.");
+        return;
+      }
+
+      if (newPassword.length < 8) {
+        setError("Password must be at least 8 characters long.");
+        return;
+      }
+
+      if (newPassword !== confirmNewPassword) {
+        setError("New passwords don't match!");
+        return;
+      }
+    }
+
+    try {
+      const updateData = {
+        ...userData,
+        ...(changePassword && {
+          newPassword,
+          confirmNewPassword,
+        }),
+      };
+
+      const response = await fetch("/api/user", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateData),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to save changes");
+      }
+
+      const role = originalData?.role || userData.role || "student";
+      router.push(role === "student" ? "/lmsMainPageStudent" : "/lmsMainPage");
+    } catch (error) {
+      console.error("Update error:", error);
+      setError(error.message);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError("");
+    if (hasUnsavedChanges()) {
+      setConfirmModal({ show: true, type: "save" });
+    } else {
+      commitSave();
+    }
+  };
+
+  const handleCancel = () => {
+    if (hasUnsavedChanges()) {
+      setConfirmModal({ show: true, type: "cancel" });
+    } else {
+      const role = originalData?.role || userData.role || "student";
+      router.push(role === "student" ? "/lmsMainPageStudent" : "/lmsMainPage");
+    }
+  };
+
+  const handleSaveModalConfirm = () => {
+    setConfirmModal({ show: false, type: null });
+    commitSave();
+  };
+
+  const handleCancelModalConfirm = () => {
+    setConfirmModal({ show: false, type: null });
+    const role = originalData?.role || userData.role || "student";
+    router.push(role === "student" ? "/lmsMainPageStudent" : "/lmsMainPage");
+  };
+
+  const handleModalCancel = () => {
+    setConfirmModal({ show: false, type: null });
+  };
 
   const handleProfilePictureChange = (e) => {
     const file = e.target.files[0];
@@ -27,18 +164,18 @@ export default function EditProfilePage() {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    alert("Changes Saved Successfully!");
-  };
-
-  const handleCancel = () => {
-    router.push("/lmsMainPage");
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
+        <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
+        <p className="mt-4 text-gray-600">Loading user data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      <Header username={name} title="Edit User Information" />
+      <Header username={userData.username} title="Edit User Information" />
       <main
         className="flex-grow p-8 pt-13 flex flex-col items-center"
         style={{
@@ -49,108 +186,147 @@ export default function EditProfilePage() {
           onSubmit={handleSubmit}
           className="bg-white p-8 rounded-lg shadow-md w-full max-w-md"
         >
+          {error && (
+            <div className="text-red-500 mb-4 text-center">{error}</div>
+          )}
+
           <div className="mb-4 text-center">
             {profilePicture && (
               <img
                 src={profilePicture}
-                alt="Profile Picture"
+                alt="Profile Preview"
                 className="w-32 h-32 rounded-full object-cover mx-auto mb-4"
               />
             )}
-            <input type="file" onChange={handleProfilePictureChange} />
-          </div>
-
-          <label className="block mb-2">Name:</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full border p-2 rounded mb-4"
-          />
-
-          <label className="block mb-2">Email:</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full border p-2 rounded mb-4"
-          />
-
-          <label className="block mb-2">Telephone:</label>
-          <input
-            type="tel"
-            value={telephone}
-            onChange={(e) => setTelephone(e.target.value)}
-            className="w-full border p-2 rounded mb-4"
-          />
-
-          <label className="block mb-2">Address:</label>
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            className="w-full border p-2 rounded mb-4"
-          />
-
-          <label className="block mb-2">Bio:</label>
-          <textarea
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            className="w-full border p-2 rounded mb-4"
-          />
-
-          <div className="mb-4">
-            <label className="mr-2">Change Password:</label>
             <input
-              type="checkbox"
-              checked={changePassword}
-              onChange={() => setChangePassword(!changePassword)}
+              type="file"
+              onChange={handleProfilePictureChange}
+              className="block w-full text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0
+                file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700
+                hover:file:bg-blue-100"
             />
           </div>
 
-          {changePassword && (
-            <>
-              <label className="block mb-2">New Password:</label>
-              <div className="relative mb-4">
+          <div className="space-y-4">
+            <div>
+              <label className="block mb-2 font-medium">Username:</label>
+              <input
+                type="text"
+                value={userData.username}
+                onChange={(e) =>
+                  setUserData({ ...userData, username: e.target.value })
+                }
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-300"
+              />
+            </div>
+            <div>
+              <label className="block mb-2 font-medium">Email:</label>
+              <input
+                type="email"
+                value={userData.email}
+                onChange={(e) =>
+                  setUserData({ ...userData, email: e.target.value })
+                }
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-300"
+              />
+            </div>
+            <div>
+              <label className="block mb-2 font-medium">Telephone:</label>
+              <input
+                type="tel"
+                value={userData.telephone}
+                onChange={(e) =>
+                  setUserData({ ...userData, telephone: e.target.value })
+                }
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-300"
+              />
+            </div>
+            <div>
+              <label className="block mb-2 font-medium">Address:</label>
+              <input
+                type="text"
+                value={userData.address}
+                onChange={(e) =>
+                  setUserData({ ...userData, address: e.target.value })
+                }
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-300"
+              />
+            </div>
+            <div>
+              <label className="block mb-2 font-medium">Bio:</label>
+              <textarea
+                value={userData.bio}
+                onChange={(e) =>
+                  setUserData({ ...userData, bio: e.target.value })
+                }
+                className="w-full border p-2 rounded h-32 focus:ring-2 focus:ring-blue-300"
+              />
+            </div>
+            <div className="pt-4 border-t">
+              <label className="flex items-center gap-2 font-medium">
                 <input
-                  type={showPassword ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full border p-2 rounded pr-10"
+                  type="checkbox"
+                  checked={changePassword}
+                  onChange={() => setChangePassword(!changePassword)}
+                  className="w-4 h-4"
                 />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-3 flex items-center text-gray-600"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
-                </button>
-              </div>
+                Change Password
+              </label>
+              {changePassword && (
+                <div className="space-y-4 mt-4">
+                  <div>
+                    <label className="block mb-2">New Password:</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full border p-2 rounded pr-10 focus:ring-2 focus:ring-blue-300"
+                      />
+                      <button
+                        type="button"
+                        className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <FiEyeOff size={20} />
+                        ) : (
+                          <FiEye size={20} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block mb-2">Confirm Password:</label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        className="w-full border p-2 rounded pr-10 focus:ring-2 focus:ring-blue-300"
+                      />
+                      <button
+                        type="button"
+                        className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                      >
+                        {showConfirmPassword ? (
+                          <FiEyeOff size={20} />
+                        ) : (
+                          <FiEye size={20} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
-              <label className="block mb-2">Confirm New Password:</label>
-              <div className="relative mb-4">
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmNewPassword}
-                  onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  className="w-full border p-2 rounded pr-10"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-3 flex items-center text-gray-600"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <FiEyeOff size={20} />
-                  ) : (
-                    <FiEye size={20} />
-                  )}
-                </button>
-              </div>
-            </>
-          )}
-
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-4 mt-8">
             <Button
               text="Save Changes"
               type="submit"
@@ -164,6 +340,23 @@ export default function EditProfilePage() {
             />
           </div>
         </form>
+
+        {confirmModal.show && confirmModal.type === "save" && (
+          <ConfirmationPopup
+            title="Confirm Save"
+            message="Are you sure you want to save the changes?"
+            onConfirm={handleSaveModalConfirm}
+            onCancel={handleModalCancel}
+          />
+        )}
+        {confirmModal.show && confirmModal.type === "cancel" && (
+          <ConfirmationPopup
+            title="Confirm Cancel"
+            message="You have unsaved changes. Are you sure you want to cancel? Your changes will not be saved."
+            onConfirm={handleCancelModalConfirm}
+            onCancel={handleModalCancel}
+          />
+        )}
       </main>
       <Footer />
     </div>
