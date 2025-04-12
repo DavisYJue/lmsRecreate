@@ -217,7 +217,8 @@ export default function EditProfilePage() {
                 onChange={(e) =>
                   setUserData({ ...userData, username: e.target.value })
                 }
-                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-300"
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-300 bg-gray-200"
+                readOnly
               />
             </div>
             <div>

@@ -115,7 +115,7 @@ export default function LoginPage() {
             </div>
             <div className="flex justify-center mt-6">
               <LoginButton
-                text={isLoading ? "Authenticating..." : "Login"}
+                text={isLoading ? "Logging In..." : "Login"}
                 onClick={handleSubmit}
                 disabled={isLoading}
                 className="w-full"
