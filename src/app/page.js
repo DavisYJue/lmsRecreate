@@ -27,33 +27,30 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await fetch(
-        `/api/login?username=${encodeURIComponent(username)}`
-      );
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password.trim(),
+        }),
+      });
 
-      if (!response.ok) throw new Error("Invalid username or password");
-
-      const accounts = await response.json();
-
-      if (accounts.length === 0 || accounts[0].password !== password) {
-        throw new Error("Invalid username or password");
+      // Check content type before parsing
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Invalid server response");
       }
 
-      // Store user session
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          id: accounts[0].account_id,
-          role: accounts[0].role,
-        })
-      );
+      const data = await response.json();
 
-      // Redirect based on role
-      if (accounts[0].role === "student") {
-        router.push("/lmsMainPageStudent");
-      } else {
-        router.push("/lmsMainPage");
+      if (!response.ok) {
+        throw new Error(data.error || "Login failed");
       }
+
+      const redirectPath =
+        data.role === "student" ? "/lmsMainPageStudent" : "/lmsMainPage";
+      router.push(redirectPath);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -77,9 +74,7 @@ export default function LoginPage() {
       <div className="flex-grow flex flex-col justify-center items-center">
         <h2 className="text-indigo-950 text-4xl font-bold mb-5">Login</h2>
         <div className="bg-white p-8 rounded-xl border-4 border-slate-900 w-max">
-          {error && (
-            <div className="text-red-500 mb-4 text-center">{error}</div>
-          )}
+          {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
           <form onSubmit={handleSubmit}>
             <LoginInput
               label="Username"
@@ -99,7 +94,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={togglePasswordVisibility}
-                className="absolute right-3 top-13 text-sm text-slate-950 hover:text-blue-700 focus:outline-none"
+                className="absolute right-3 top-13 text-slate-600 hover:text-blue-700 focus:outline-none"
               >
                 {showPassword ? (
                   <FiEyeOff className="text-xl" />
@@ -108,11 +103,12 @@ export default function LoginPage() {
                 )}
               </button>
             </div>
-            <div className="flex justify-center">
+            <div className="flex justify-center mt-6">
               <LoginButton
-                text={isLoading ? "Logging In..." : "Login"}
+                text={isLoading ? "Authenticating..." : "Login"}
                 onClick={handleSubmit}
                 disabled={isLoading}
+                className="w-full"
               />
             </div>
           </form>
