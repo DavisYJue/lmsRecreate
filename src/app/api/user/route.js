@@ -3,7 +3,8 @@ import { cookies } from "next/headers";
 
 export async function GET() {
   try {
-    const sessionCookie = cookies().get("session");
+    const cookiestore = await cookies();
+    const sessionCookie = cookiestore.get("session");
 
     if (!sessionCookie) {
       return Response.json({ error: "Not authenticated" }, { status: 401 });
