@@ -1,24 +1,59 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
+import ConfirmationPopup from "./ConfirmationPopup";
 
-const CourseCard = ({ course }) => (
-  <div
-    className="bg-white border-2 shadow-lg rounded-lg p-6 transition transform hover:scale-105 hover:shadow-2xl"
-    style={{ width: "298px", flexGrow: 0 }} // Set a fixed width
-  >
-    <img
-      src={course.imageUrl}
-      alt={course.title}
-      className="h-40 w-full object-cover rounded mb-4"
-    />
-    <h3 className="font-semibold text-lg text-gray-800 mb-2 truncate">
-      {course.title}
-    </h3>
-    <p className="text-sm text-gray-600 mb-4">{course.dateRange}</p>
-    <button className="delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100 border-2 text-slate-950 border-slate-900 w-full px-4 py-2 bg-blue-300 font-bold p-3 hover:bg-indigo-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-indigo-950 active:text-white active:border-indigo-400 rounded-md">
-      View Course
-    </button>
-  </div>
-);
+const CourseCard = ({ course, onEnroll }) => {
+  const [showPopup, setShowPopup] = useState(false);
+
+  const handleClick = () => {
+    if (course.isEnrolled) {
+      // View logic here
+      console.log("Viewing course", course.course_id);
+    } else {
+      setShowPopup(true);
+    }
+  };
+
+  const confirmEnroll = () => {
+    onEnroll(course.course_id);
+    setShowPopup(false);
+  };
+
+  return (
+    <div
+      className="bg-white border-2 shadow-lg rounded-lg p-6 transition transform hover:scale-105 hover:shadow-2xl"
+      style={{ width: "298px", flexGrow: 0 }}
+    >
+      <img
+        src={course.imageUrl}
+        alt={course.title}
+        className="h-40 w-full object-cover rounded mb-4"
+      />
+      <h3 className="font-semibold text-lg text-gray-800 mb-2 truncate">
+        {course.title}
+      </h3>
+      <p className="text-sm text-gray-600 mb-4">{course.dateRange}</p>
+      <button
+        onClick={handleClick}
+        className={`delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100 border-2 w-full px-4 py-2 font-bold rounded-md ${
+          course.isEnrolled
+            ? "bg-blue-300 text-slate-950 border-slate-900 hover:bg-indigo-400 active:bg-indigo-950 active:text-white"
+            : "bg-green-300 text-slate-950 border-green-900 hover:bg-green-400 active:bg-green-700 active:text-white"
+        }`}
+      >
+        {course.isEnrolled ? "View Course" : "Enroll Course"}
+      </button>
+
+      {showPopup && (
+        <ConfirmationPopup
+          title="Enroll Confirmation"
+          message={`Are you sure you want to enroll in "${course.title}"?`}
+          onConfirm={confirmEnroll}
+          onCancel={() => setShowPopup(false)}
+        />
+      )}
+    </div>
+  );
+};
 
 export default CourseCard;

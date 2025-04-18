@@ -18,51 +18,73 @@ export default function LmsMainPage() {
     setFilter(e.target.value);
   };
 
+  const fetchUserDataAndCourses = async () => {
+    try {
+      const userRes = await fetch("/api/user");
+      if (!userRes.ok) throw new Error("Failed to fetch user");
+      const user = await userRes.json();
+      setUsername(user.username);
+
+      const enrolledRes = await fetch("/api/courses/enrolled");
+      if (!enrolledRes.ok) throw new Error("Failed to fetch enrolled courses");
+      const enrolled = await enrolledRes.json();
+
+      const publicRes = await fetch("/api/courses/public");
+      if (!publicRes.ok) throw new Error("Failed to fetch public courses");
+      const publicList = await publicRes.json();
+
+      const enrolledIds = new Set(enrolled.map((c) => c.course_id));
+      const filteredPublic = publicList
+        .filter((course) => !enrolledIds.has(course.course_id))
+        .map((course) => ({ ...course, isEnrolled: false }));
+
+      const enrichedEnrolled = enrolled.map((course) => ({
+        ...course,
+        isEnrolled: true,
+      }));
+
+      setPublicCourses(filteredPublic);
+      setYourCourses(enrichedEnrolled);
+    } catch (err) {
+      console.error("Error:", err.message);
+      router.push("/?error=relogin");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserDataAndCourses();
+  }, [router]);
+
+  const handleEnroll = async (courseId) => {
+    try {
+      const res = await fetch("/api/courses/enroll", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ courseId }),
+      });
+
+      if (res.ok) {
+        fetchUserDataAndCourses();
+      } else {
+        const err = await res.json();
+        alert(err.error || err.message || "Failed to enroll");
+        console.error("Failed to enroll:", err);
+      }
+    } catch (err) {
+      console.error("Enrollment error:", err);
+    }
+  };
+
   const filteredYourCourses = yourCourses.filter(
     (course) => filter === "all" || course.status === filter
   );
   const filteredPublicCourses = publicCourses.filter(
     (course) => filter === "all" || course.status === filter
   );
-
-  useEffect(() => {
-    const fetchUserDataAndCourses = async () => {
-      try {
-        // Get user info
-        const userRes = await fetch("/api/user");
-        if (!userRes.ok) throw new Error("Failed to fetch user");
-        const user = await userRes.json();
-        setUsername(user.username);
-
-        // Get enrolled courses
-        const enrolledRes = await fetch("/api/courses/enrolled");
-        if (!enrolledRes.ok)
-          throw new Error("Failed to fetch enrolled courses");
-        const enrolled = await enrolledRes.json();
-        setYourCourses(enrolled);
-
-        // Get public courses
-        const publicRes = await fetch("/api/courses/public");
-        if (!publicRes.ok) throw new Error("Failed to fetch public courses");
-        const publicList = await publicRes.json();
-
-        // Filter public courses: exclude any course that exists in yourCourses (enrolled)
-        const enrolledCourseIds = new Set(enrolled.map((c) => c.course_id));
-        const filteredPublic = publicList.filter(
-          (course) => !enrolledCourseIds.has(course.course_id)
-        );
-
-        setPublicCourses(filteredPublic);
-      } catch (err) {
-        console.error("Error:", err.message);
-        router.push("/?error=relogin");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserDataAndCourses();
-  }, [router]);
 
   if (isLoading) {
     return (
@@ -85,42 +107,14 @@ export default function LmsMainPage() {
       <NavBar username={username} />
       <main className="flex-grow p-8 flex flex-col">
         <Filter filter={filter} onChange={handleFilterChange} />
-
         <h2 className="text-2xl font-semibold text-gray-800 mb-6">
           Your Courses
         </h2>
-        {filteredYourCourses.length > 0 ? (
-          <CourseList courses={filteredYourCourses} />
-        ) : (
-          <div className="flex flex-col justify-center items-center">
-            <img
-              src="/nothingHere.webp"
-              alt="Nothing to display"
-              className="w-32 h-auto opacity-50"
-            />
-            <p className="text-gray-500 mt-4">
-              No courses available for the selected filter.
-            </p>
-          </div>
-        )}
-
+        <CourseList courses={filteredYourCourses} />
         <h2 className="text-2xl font-semibold text-gray-800 mt-12 mb-6">
           Public Courses
         </h2>
-        {filteredPublicCourses.length > 0 ? (
-          <CourseList courses={filteredPublicCourses} />
-        ) : (
-          <div className="flex flex-col justify-center items-center">
-            <img
-              src="/nothingHere.webp"
-              alt="Nothing to display"
-              className="w-32 h-auto opacity-50"
-            />
-            <p className="text-gray-500 mt-4">
-              No public courses available for the selected filter.
-            </p>
-          </div>
-        )}
+        <CourseList courses={filteredPublicCourses} onEnroll={handleEnroll} />
       </main>
       <Footer />
     </div>
