@@ -1,14 +1,25 @@
 "use client";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import ConfirmationPopup from "./ConfirmationPopup";
 
 const CourseCard = ({ course, onEnroll }) => {
   const [showPopup, setShowPopup] = useState(false);
+  const router = useRouter();
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (course.isEnrolled) {
-      // View logic here
-      console.log("Viewing course", course.course_id);
+      try {
+        await fetch("/api/courses/setSelected", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ course_id: course.course_id }),
+        });
+
+        router.push("/courseDetails");
+      } catch (error) {
+        console.error("Failed to set selected course:", error);
+      }
     } else {
       setShowPopup(true);
     }
