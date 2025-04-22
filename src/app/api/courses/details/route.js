@@ -3,7 +3,7 @@ import { query } from "../../../../../lib/db";
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
+    const cookieStore = cookies();
     const sessionCookie = cookieStore.get("session");
 
     if (!sessionCookie) {
@@ -30,46 +30,39 @@ export async function GET() {
       return Response.json({ error: "Course not found" }, { status: 404 });
     }
 
+    console.log("Course fetched:", course);
+
     const assignments = await query(
       `SELECT * FROM assignment WHERE course_id = ?`,
       [courseId]
     );
+
+    console.log("Assignments fetched:", assignments);
 
     const materials = await query(
       `SELECT * FROM material WHERE course_id = ?`,
       [courseId]
     );
 
+    // Get the user's role
     const [user] = await query(
       `SELECT account_id, username, email, telephone, address, bio, role
-       FROM Account 
-       WHERE account_id = ?`,
+     FROM Account 
+     WHERE account_id = ?`,
       [session.account_id]
     );
 
+    // Proceed with the rest of your logic...
+
+    console.log("Materials fetched:", materials);
+
     for (const assignment of assignments) {
-      // Assignment materials
       const files = await query(
         `SELECT * FROM assignment_material WHERE assignment_id = ?`,
         [assignment.assignment_id]
       );
       assignment.materials = files;
-
-      // Submission (based on student_id)
-      const [student] = await query(
-        `SELECT student_id FROM student WHERE account_id = ?`,
-        [session.account_id]
-      );
-
-      if (student) {
-        const [submission] = await query(
-          `SELECT * FROM submission WHERE assignment_id = ? AND student_id = ?`,
-          [assignment.assignment_id, student.student_id]
-        );
-        assignment.submission = submission || null;
-      } else {
-        assignment.submission = null;
-      }
+      console.log(`Files for assignment ${assignment.assignment_id}:`, files);
     }
 
     return Response.json({
