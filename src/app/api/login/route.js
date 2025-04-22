@@ -30,7 +30,8 @@ export async function POST(request) {
     }
 
     // Set secure session cookie
-    cookies().set(
+    const cookieStore = await cookies();
+    cookieStore.set(
       "session",
       JSON.stringify({
         account_id: account.account_id,
