@@ -63,7 +63,7 @@ const CourseDetails = () => {
     formData.append("assignmentId", assignmentId);
 
     try {
-      const response = await fetch("/api/submit", {
+      const response = await fetch("/api/submitSubmission", {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -91,7 +91,7 @@ const CourseDetails = () => {
 
   const handleUnsubmit = async (assignmentTitle, assignmentId) => {
     try {
-      const response = await fetch("/api/unsubmit", {
+      const response = await fetch("/api/unsubmitSubmission", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ assignmentId }),
