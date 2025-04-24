@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -10,9 +10,8 @@ const CourseDetails = () => {
   const [uploadedFiles, setUploadedFiles] = useState({});
   const [submittedFiles, setSubmittedFiles] = useState({});
   const [showMaterial, setShowMaterial] = useState(null);
-  const [allowSubmit, setAllowSubmit] = useState({});
-  const [courseData, setCourseData] = useState(null); // default is null
-  const fileInputRef = React.useRef(null);
+  const [courseData, setCourseData] = useState(null);
+  const fileInputRefs = useRef({});
 
   useEffect(() => {
     const fetchCourseDetails = async () => {
@@ -24,112 +23,92 @@ const CourseDetails = () => {
         });
 
         if (!response.ok) throw new Error("Failed to fetch course details");
-
         const data = await response.json();
-        console.log("Course data fetched:", data); // Debugging line
+
+        const initialSubmitted = {};
+        data.assignments?.forEach((assignment) => {
+          if (assignment.submission) {
+            initialSubmitted[assignment.assignment_title] = {
+              files: assignment.submission.file_path.split(",").map((path) => ({
+                name: path.split("/").pop(),
+                path: path,
+              })),
+              submittedAt: assignment.submission.submission_time,
+            };
+          }
+        });
+        setSubmittedFiles(initialSubmitted);
         setCourseData(data);
       } catch (error) {
         console.error("Error loading course data:", error);
       }
     };
-
     fetchCourseDetails();
   }, []);
 
-  const handleFileUpload = async (assignmentTitle, files) => {
-    // Store file paths and files
-    const fileArray = Array.from(files);
-
-    // Assuming you have a function that uploads the file to the server and returns the path
-    const filePaths = await uploadFilesToServer(fileArray);
-
-    // Save to uploadedFiles
-    setUploadedFiles((prevFiles) => ({
-      ...prevFiles,
-      [assignmentTitle]: filePaths, // Save the file paths for the assignment
+  const handleFileUpload = (event, assignmentTitle) => {
+    const files = Array.from(event.target.files);
+    setUploadedFiles((prev) => ({
+      ...prev,
+      [assignmentTitle]: files,
     }));
   };
 
-  // Example of an API function that uploads files and returns file paths
-  const uploadFilesToServer = async (files) => {
-    // Create FormData to send to the server
-    const formData = new FormData();
-    files.forEach((file) => {
-      formData.append("files", file);
-    });
-
-    const response = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error("File upload failed");
-    }
-
-    const data = await response.json();
-    return data.filePaths; // Assuming the response returns file paths
-  };
-
-  const handleSubmit = async (assignmentTitle) => {
+  const handleSubmit = async (assignmentTitle, assignmentId) => {
     const files = uploadedFiles[assignmentTitle];
+    if (!files?.length) return;
 
-    if (files && files.length > 0) {
-      // Create a submission object with the file paths
-      const submissionData = {
-        assignment_id: assignmentTitle, // Assuming assignmentTitle is the ID
-        student_id: session.account_id, // Get student ID from session
-        filePaths: files.map((file) => file.path), // File paths from the uploaded files
-      };
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file));
+    formData.append("assignmentId", assignmentId);
 
-      // Send to API to create the submission
+    try {
       const response = await fetch("/api/submit", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!response.ok) throw new Error("Submission failed");
+      const result = await response.json();
+
+      setSubmittedFiles((prev) => ({
+        ...prev,
+        [assignmentTitle]: {
+          files: result.files.map((path) => ({
+            name: path.split("/").pop(),
+            path: path,
+          })),
+          submittedAt: result.submission_time,
         },
-        body: JSON.stringify(submissionData),
-      });
-
-      if (!response.ok) {
-        alert("Failed to submit");
-      } else {
-        // Mark as submitted in UI
-        setSubmittedFiles((prevFiles) => ({
-          ...prevFiles,
-          [assignmentTitle]: {
-            files: files,
-            submitTime: new Date(),
-          },
-        }));
-      }
+      }));
+      setUploadedFiles((prev) => ({ ...prev, [assignmentTitle]: [] }));
+    } catch (error) {
+      console.error("Submission error:", error);
+      alert("Failed to submit files");
     }
   };
 
-  const handleUnsubmit = async (assignmentTitle) => {
-    const response = await fetch("/api/unsubmit", {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        assignment_id: assignmentTitle,
-        student_id: session.account_id,
-      }),
-    });
-
-    if (response.ok) {
-      // Reset submission status in UI
-      setSubmittedFiles((prevFiles) => {
-        const updatedFiles = { ...prevFiles };
-        delete updatedFiles[assignmentTitle];
-        return updatedFiles;
+  const handleUnsubmit = async (assignmentTitle, assignmentId) => {
+    try {
+      const response = await fetch("/api/unsubmit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignmentId }),
+        credentials: "include",
       });
-    }
-  };
 
-  const handleFileClick = () => {
-    fileInputRef.current.click();
+      if (!response.ok) throw new Error("Unsubmit failed");
+
+      setSubmittedFiles((prev) => {
+        const newState = { ...prev };
+        delete newState[assignmentTitle];
+        return newState;
+      });
+    } catch (error) {
+      console.error("Unsubmit error:", error);
+      alert("Failed to remove submission");
+    }
   };
 
   return (
@@ -190,6 +169,7 @@ const CourseDetails = () => {
                         />
                       </div>
                     </div>
+
                     {showMaterial === assignment.assignment_title && (
                       <div className="mt-2 p-2 bg-gray-200 rounded-lg">
                         <p className="text-gray-700 font-semibold">
@@ -201,91 +181,104 @@ const CourseDetails = () => {
                         <p className="text-gray-700 font-semibold mb-1">
                           Attach your answer here:
                         </p>
-                        <Button
-                          onClick={handleFileClick}
-                          text="Attach Files"
-                          className="block w-30 h-9 text-sm flex items-center justify-center bg-gray-500 text-white hover:bg-gray-600 font-bold border-2 border-slate-900 active:bg-slate-900 active:border-stone-50 delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100"
-                        />
 
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          multiple
-                          onChange={(e) =>
-                            handleFileUpload(
-                              assignment.assignment_title,
-                              e.target.files
-                            )
-                          }
-                          className="hidden"
-                          disabled={
-                            !!submittedFiles[assignment.assignment_title]
-                          }
-                        />
+                        <div className="space-y-4">
+                          <input
+                            type="file"
+                            multiple
+                            ref={(el) =>
+                              (fileInputRefs.current[
+                                assignment.assignment_title
+                              ] = el)
+                            }
+                            className="hidden"
+                            onChange={(e) =>
+                              handleFileUpload(e, assignment.assignment_title)
+                            }
+                            disabled={
+                              !!submittedFiles[assignment.assignment_title]
+                            }
+                          />
+                          <Button
+                            text="Attach Files"
+                            onClick={() =>
+                              fileInputRefs.current[
+                                assignment.assignment_title
+                              ]?.click()
+                            }
+                            className="w-30 h-9 text-sm bg-gray-500 text-white hover:bg-gray-600 font-bold border-2 border-slate-900 active:bg-slate-900 active:border-stone-50 delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100 flex items-center justify-center"
+                            disabled={
+                              !!submittedFiles[assignment.assignment_title]
+                            }
+                          />
 
-                        {uploadedFiles[assignment.assignment_title] && (
-                          <div className="text-gray-700 mt-2">
-                            <strong>Attached Files:</strong>
-                            <ul className="list-disc pl-5">
-                              {Array.from(
-                                uploadedFiles[assignment.assignment_title]
-                              ).map((file, i) => (
-                                <li key={i}>{file.name}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {allowSubmit[assignment.assignment_title] &&
-                          uploadedFiles[assignment.assignment_title]?.length >
+                          {uploadedFiles[assignment.assignment_title]?.length >
                             0 && (
-                            <Button
-                              onClick={() =>
-                                handleSubmit(assignment.assignment_title)
-                              }
-                              text="Submit"
-                              className="mt-2 px-3 py-1 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
-                            />
-                          )}
-
-                        {submittedFiles[assignment.assignment_title] && (
-                          <div className="mt-2">
-                            <p className="text-green-600">Submitted Files:</p>
-                            <p className="text-sm text-gray-600">
-                              Submitted at:{" "}
-                              {submittedFiles[
-                                assignment.assignment_title
-                              ].submitTime.toLocaleString()}
-                            </p>
-                            <ul>
-                              {submittedFiles[
-                                assignment.assignment_title
-                              ].files.map((file, i) => (
-                                <li key={i}>
-                                  <a
-                                    href={URL.createObjectURL(file)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-500"
-                                  >
-                                    {file.name}
-                                  </a>
-                                </li>
-                              ))}
-                            </ul>
-                            <div className="flex gap-2 mt-2">
+                            <div className="mt-2 text-gray-700">
+                              <strong>Selected Files:</strong>
+                              <ul className="list-disc pl-5">
+                                {uploadedFiles[assignment.assignment_title].map(
+                                  (file, i) => (
+                                    <li key={i}>{file.name}</li>
+                                  )
+                                )}
+                              </ul>
                               <Button
+                                text="Submit"
                                 onClick={() =>
-                                  handleUnsubmit(assignment.assignment_title)
+                                  handleSubmit(
+                                    assignment.assignment_title,
+                                    assignment.assignment_id
+                                  )
                                 }
-                                text="Unsubmit"
-                                className="px-3 py-1 text-slate-950 bg-red-300 hover:bg-rose-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-pink-800 active:text-white active:border-rose-400"
+                                className="mt-2 px-3 py-1 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
                               />
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Displaying Assignment Attachments */}
+                          {submittedFiles[assignment.assignment_title] && (
+                            <div className="mt-2">
+                              <p className="text-green-600">Submitted Files:</p>
+                              <p className="text-sm text-gray-600">
+                                Submitted at:{" "}
+                                {new Date(
+                                  submittedFiles[
+                                    assignment.assignment_title
+                                  ].submittedAt
+                                ).toLocaleString()}
+                              </p>
+                              <ul className="list-disc pl-5">
+                                {submittedFiles[
+                                  assignment.assignment_title
+                                ].files.map((file, i) => (
+                                  <li key={i}>
+                                    <a
+                                      href={file.path}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-500 hover:underline"
+                                    >
+                                      {file.name}
+                                    </a>
+                                  </li>
+                                ))}
+                              </ul>
+                              <div className="flex gap-2 mt-2">
+                                <Button
+                                  text="Unsubmit"
+                                  onClick={() =>
+                                    handleUnsubmit(
+                                      assignment.assignment_title,
+                                      assignment.assignment_id
+                                    )
+                                  }
+                                  className="px-3 py-1 text-slate-950 bg-red-300 hover:bg-rose-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-pink-800 active:text-white active:border-rose-400"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
                         {(assignment.materials || []).length > 0 && (
                           <div className="mt-4">
                             <h4 className="text-lg font-semibold">
@@ -298,7 +291,7 @@ const CourseDetails = () => {
                                     href={material.file_path}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-blue-500"
+                                    className="text-blue-500 hover:underline"
                                   >
                                     {material.file_path.split("/").pop()}
                                   </a>
@@ -348,7 +341,7 @@ const CourseDetails = () => {
       <div className="mt-auto p-4 flex justify-center w-full">
         <Button
           onClick={() => {
-            const role = courseData?.role || "student"; // assuming role comes from courseData
+            const role = courseData?.role || "student";
             router.push(
               role === "student" ? "/lmsMainPageStudent" : "/lmsMainPage"
             );
