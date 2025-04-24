@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
+import ConfirmationPopup from "../components/ConfirmationPopup";
 
 const CourseDetails = () => {
   const router = useRouter();
@@ -12,6 +13,7 @@ const CourseDetails = () => {
   const [showMaterial, setShowMaterial] = useState(null);
   const [courseData, setCourseData] = useState(null);
   const fileInputRefs = useRef({});
+  const [showUnsubmitConfirm, setShowUnsubmitConfirm] = useState(null);
 
   useEffect(() => {
     const fetchCourseDetails = async () => {
@@ -105,6 +107,8 @@ const CourseDetails = () => {
         delete newState[assignmentTitle];
         return newState;
       });
+      setShowUnsubmitConfirm(null);
+      alert("Submission removed successfully");
     } catch (error) {
       console.error("Unsubmit error:", error);
       alert("Failed to remove submission");
@@ -263,14 +267,31 @@ const CourseDetails = () => {
                                   </li>
                                 ))}
                               </ul>
+
                               <div className="flex gap-2 mt-2">
+                                {showUnsubmitConfirm && (
+                                  <ConfirmationPopup
+                                    title="Confirm Unsubmit"
+                                    message={`Are you sure you want to unsubmit your submission for "${showUnsubmitConfirm.title}"?`}
+                                    onConfirm={() =>
+                                      handleUnsubmit(
+                                        showUnsubmitConfirm.title,
+                                        showUnsubmitConfirm.id
+                                      )
+                                    }
+                                    onCancel={() =>
+                                      setShowUnsubmitConfirm(null)
+                                    }
+                                  />
+                                )}
+
                                 <Button
                                   text="Unsubmit"
                                   onClick={() =>
-                                    handleUnsubmit(
-                                      assignment.assignment_title,
-                                      assignment.assignment_id
-                                    )
+                                    setShowUnsubmitConfirm({
+                                      title: assignment.assignment_title,
+                                      id: assignment.assignment_id,
+                                    })
                                   }
                                   className="px-3 py-1 text-slate-950 bg-red-300 hover:bg-rose-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-pink-800 active:text-white active:border-rose-400"
                                 />
