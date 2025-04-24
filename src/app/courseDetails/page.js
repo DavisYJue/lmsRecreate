@@ -14,6 +14,7 @@ const CourseDetails = () => {
   const [courseData, setCourseData] = useState(null);
   const fileInputRefs = useRef({});
   const [showUnsubmitConfirm, setShowUnsubmitConfirm] = useState(null);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(null);
 
   useEffect(() => {
     const fetchCourseDetails = async () => {
@@ -57,14 +58,14 @@ const CourseDetails = () => {
   };
 
   const handleSubmit = async (assignmentTitle, assignmentId) => {
-    const files = uploadedFiles[assignmentTitle];
-    if (!files?.length) return;
-
-    const formData = new FormData();
-    files.forEach((file) => formData.append("files", file));
-    formData.append("assignmentId", assignmentId);
-
     try {
+      const files = uploadedFiles[assignmentTitle];
+      if (!files?.length) return;
+
+      const formData = new FormData();
+      files.forEach((file) => formData.append("files", file));
+      formData.append("assignmentId", assignmentId);
+
       const response = await fetch("/api/submitSubmission", {
         method: "POST",
         body: formData,
@@ -85,6 +86,7 @@ const CourseDetails = () => {
         },
       }));
       setUploadedFiles((prev) => ({ ...prev, [assignmentTitle]: [] }));
+      setShowSubmitConfirm(null);
     } catch (error) {
       console.error("Submission error:", error);
       alert("Failed to submit files");
@@ -227,15 +229,30 @@ const CourseDetails = () => {
                                   )
                                 )}
                               </ul>
+
+                              {showSubmitConfirm && (
+                                <ConfirmationPopup
+                                  title="Confirm Submission"
+                                  message={`Are you sure you want to submit files for "${showSubmitConfirm.title}"?`}
+                                  onConfirm={() =>
+                                    handleSubmit(
+                                      showSubmitConfirm.title,
+                                      showSubmitConfirm.id
+                                    )
+                                  }
+                                  onCancel={() => setShowSubmitConfirm(null)}
+                                />
+                              )}
+
                               <Button
                                 text="Submit"
                                 onClick={() =>
-                                  handleSubmit(
-                                    assignment.assignment_title,
-                                    assignment.assignment_id
-                                  )
+                                  setShowSubmitConfirm({
+                                    title: assignment.assignment_title,
+                                    id: assignment.assignment_id,
+                                  })
                                 }
-                                className="mt-2 px-3 py-1 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
+                                className="mt-2 px-3 py-1 text-slate-950 bg-emerald-200 hover:bg-green-400"
                               />
                             </div>
                           )}
@@ -272,7 +289,7 @@ const CourseDetails = () => {
                                 {showUnsubmitConfirm && (
                                   <ConfirmationPopup
                                     title="Confirm Unsubmit"
-                                    message={`Are you sure you want to unsubmit your submission for "${showUnsubmitConfirm.title}"?`}
+                                    message={`Are you sure you want to unsubmit "${showUnsubmitConfirm.title}"?`}
                                     onConfirm={() =>
                                       handleUnsubmit(
                                         showUnsubmitConfirm.title,
