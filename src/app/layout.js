@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Recreate LMS",
+  title: "Cloud LMS",
 };
 
 export default function RootLayout({ children }) {

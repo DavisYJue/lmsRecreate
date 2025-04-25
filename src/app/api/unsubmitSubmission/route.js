@@ -8,7 +8,6 @@ export async function POST(request) {
     const cookieStore = await cookies();
     const session = JSON.parse(cookieStore.get("session")?.value || "{}");
 
-    // Validate session
     if (!session.account_id) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -16,33 +15,42 @@ export async function POST(request) {
       });
     }
 
-    // Get student ID
-    const [student] = await query(
-      `SELECT student_id FROM student WHERE account_id = ?`,
-      [session.account_id]
-    );
-    if (!student)
-      return new Response(JSON.stringify({ error: "Student not found" }), {
-        status: 404,
-      });
+    // Check user role
+    const [student, teacher] = await Promise.all([
+      query(`SELECT student_id FROM student WHERE account_id = ?`, [
+        session.account_id,
+      ]),
+      query(`SELECT teacher_id FROM teacher WHERE account_id = ?`, [
+        session.account_id,
+      ]),
+    ]);
 
-    // Get assignment ID from request
+    const isStudent = student.length > 0;
     const { assignmentId } = await request.json();
 
-    // Get submission details
-    const [submission] = await query(
-      `SELECT * FROM submission 
-       WHERE assignment_id = ? AND student_id = ?`,
-      [assignmentId, student.student_id]
-    );
+    let submission;
+    if (isStudent) {
+      [submission] = await query(
+        `SELECT * FROM submission 
+         WHERE assignment_id = ? AND student_id = ?`,
+        [assignmentId, student[0].student_id]
+      );
+    } else {
+      [submission] = await query(
+        `SELECT * FROM OtherSubmission 
+         WHERE assignment_id = ? AND account_id = ?`,
+        [assignmentId, session.account_id]
+      );
+    }
 
-    if (!submission)
+    if (!submission) {
       return new Response(JSON.stringify({ error: "Submission not found" }), {
         status: 404,
       });
+    }
 
-    // Delete associated files
     const filePaths = submission.file_path.split(",");
+    // Inside the file deletion loop
     for (const filePath of filePaths) {
       try {
         const fullPath = join(process.cwd(), "public", filePath);
@@ -52,12 +60,19 @@ export async function POST(request) {
       }
     }
 
-    // Delete submission record
-    await query(
-      `DELETE FROM submission 
-       WHERE submission_id = ?`,
-      [submission.submission_id]
-    );
+    if (isStudent) {
+      await query(
+        `DELETE FROM submission 
+         WHERE submission_id = ?`,
+        [submission.submission_id]
+      );
+    } else {
+      await query(
+        `DELETE FROM OtherSubmission 
+         WHERE submission_id = ?`,
+        [submission.submission_id]
+      );
+    }
 
     return new Response(
       JSON.stringify({ message: "Submission removed successfully" }),

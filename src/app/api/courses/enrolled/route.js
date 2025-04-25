@@ -3,7 +3,6 @@ import { cookies } from "next/headers";
 
 export async function GET() {
   try {
-    // Verify the session exists.\
     const cookiestore = await cookies();
     const sessionCookie = cookiestore.get("session");
     if (!sessionCookie) {
@@ -11,19 +10,21 @@ export async function GET() {
     }
     const session = JSON.parse(sessionCookie.value);
 
-    // Query courses that this user is enrolled in.
-    // We assume an Enrollment table with columns (enrollment_id, account_id, course_id, ...)
     const courses = await query(
       `SELECT 
           c.course_id, 
           c.course_title AS title, 
-          c.course_image AS imageUrl,
+          COALESCE(c.course_image, '/courses/defaultCourseImage.jpg') AS imageUrl,
           CONCAT(DATE_FORMAT(c.start_date, '%b %Y'), ' - ', DATE_FORMAT(c.end_date, '%b %Y')) AS dateRange,
           c.course_type AS status
        FROM Course c
-       JOIN Enrollment e ON c.course_id = e.course_id
-       WHERE e.account_id = ?`,
-      [session.account_id]
+       JOIN (
+         SELECT course_id FROM Enrollment WHERE account_id = ?
+         UNION
+         SELECT course_id FROM OtherEnrollment WHERE account_id = ?
+       ) AS combined
+       ON c.course_id = combined.course_id`,
+      [session.account_id, session.account_id]
     );
 
     return Response.json(courses);

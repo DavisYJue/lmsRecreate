@@ -13,6 +13,7 @@ export async function GET() {
 
     const session = JSON.parse(sessionCookie.value);
     const courseId = session.selected_course_id;
+    const accountId = session.account_id;
 
     if (!courseId) {
       console.log("No course ID in session.");
@@ -21,54 +22,66 @@ export async function GET() {
 
     console.log("Fetching course details for course ID:", courseId);
 
+    // Get base course data
     const [course] = await query(`SELECT * FROM course WHERE course_id = ?`, [
       courseId,
     ]);
-
     if (!course) {
       console.log("No course found with the provided ID.");
       return Response.json({ error: "Course not found" }, { status: 404 });
     }
 
+    // Get assignments and materials
     const assignments = await query(
       `SELECT * FROM assignment WHERE course_id = ?`,
       [courseId]
     );
-
     const materials = await query(
       `SELECT * FROM material WHERE course_id = ?`,
       [courseId]
     );
 
+    // Get user data
     const [user] = await query(
       `SELECT account_id, username, email, telephone, address, bio, role
        FROM Account 
        WHERE account_id = ?`,
-      [session.account_id]
+      [accountId]
     );
 
+    // Check if user is student or teacher
+    const [student] = await query(
+      `SELECT student_id FROM student WHERE account_id = ?`,
+      [accountId]
+    );
+    const isStudent = !!student?.student_id;
+
+    // Process assignments
     for (const assignment of assignments) {
-      // Assignment materials
+      // Get assignment materials
       const files = await query(
         `SELECT * FROM assignment_material WHERE assignment_id = ?`,
         [assignment.assignment_id]
       );
       assignment.materials = files;
 
-      // Submission (based on student_id)
-      const [student] = await query(
-        `SELECT student_id FROM student WHERE account_id = ?`,
-        [session.account_id]
-      );
-
-      if (student) {
+      // Get submission based on role
+      if (isStudent) {
+        // Student submission
         const [submission] = await query(
-          `SELECT * FROM submission WHERE assignment_id = ? AND student_id = ?`,
+          `SELECT * FROM submission 
+           WHERE assignment_id = ? AND student_id = ?`,
           [assignment.assignment_id, student.student_id]
         );
         assignment.submission = submission || null;
       } else {
-        assignment.submission = null;
+        // Teacher/non-student submission
+        const [submission] = await query(
+          `SELECT * FROM OtherSubmission 
+           WHERE assignment_id = ? AND account_id = ?`,
+          [assignment.assignment_id, accountId]
+        );
+        assignment.submission = submission || null;
       }
     }
 

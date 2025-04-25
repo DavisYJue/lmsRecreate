@@ -379,9 +379,10 @@ const CourseDetails = () => {
       <div className="mt-auto p-4 flex justify-center w-full">
         <Button
           onClick={() => {
-            const role = courseData?.role || "student";
+            // Get role from user data with proper fallback
+            const userRole = courseData?.user?.role?.toLowerCase() || "student";
             router.push(
-              role === "student" ? "/lmsMainPageStudent" : "/lmsMainPage"
+              userRole === "student" ? "/lmsMainPageStudent" : "/lmsMainPage"
             );
           }}
           text="Back"

@@ -15,15 +15,25 @@ export async function POST(request) {
       });
     }
 
-    const [student] = await query(
-      `SELECT student_id FROM student WHERE account_id = ?`,
-      [session.account_id]
-    );
-    if (!student)
-      return new Response(JSON.stringify({ error: "Student not found" }), {
-        status: 404,
+    // Check user role
+    const [student, teacher] = await Promise.all([
+      query(`SELECT student_id FROM student WHERE account_id = ?`, [
+        session.account_id,
+      ]),
+      query(`SELECT teacher_id FROM teacher WHERE account_id = ?`, [
+        session.account_id,
+      ]),
+    ]);
+
+    const isStudent = student.length > 0;
+    const isTeacher = teacher.length > 0;
+
+    if (!isStudent && !isTeacher) {
+      return new Response(JSON.stringify({ error: "User role not found" }), {
+        status: 403,
         headers: { "Content-Type": "application/json" },
       });
+    }
 
     const formData = await request.formData();
     const files = formData.getAll("files");
@@ -33,11 +43,12 @@ export async function POST(request) {
       `SELECT * FROM assignment WHERE assignment_id = ?`,
       [assignmentId]
     );
-    if (!assignment)
+    if (!assignment) {
       return new Response(JSON.stringify({ error: "Invalid assignment" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
+    }
 
     const uploadDir = join(process.cwd(), "public", "submissions");
     const filePaths = [];
@@ -45,23 +56,44 @@ export async function POST(request) {
     for (const file of files) {
       const buffer = await file.arrayBuffer();
       const filename = `${Date.now()}-${file.name}`;
-      const filePath = join(uploadDir, filename);
+
+      // Determine storage path based on role
+      const roleSubdir = isStudent ? "student" : "other";
+      const filePath = join(uploadDir, roleSubdir, filename);
+
       await writeFile(filePath, Buffer.from(buffer));
-      filePaths.push(`/submissions/${filename}`);
+      filePaths.push(`/submissions/${roleSubdir}/${filename}`);
     }
 
     const submissionTime = new Date()
       .toISOString()
       .slice(0, 19)
       .replace("T", " ");
-    await query(
-      `INSERT INTO submission (assignment_id, student_id, submission_time, file_path)
-       VALUES (?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         submission_time = VALUES(submission_time),
-         file_path = VALUES(file_path)`,
-      [assignmentId, student.student_id, submissionTime, filePaths.join(",")]
-    );
+
+    if (isStudent) {
+      await query(
+        `INSERT INTO submission (assignment_id, student_id, submission_time, file_path)
+         VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           submission_time = VALUES(submission_time),
+           file_path = VALUES(file_path)`,
+        [
+          assignmentId,
+          student[0].student_id,
+          submissionTime,
+          filePaths.join(","),
+        ]
+      );
+    } else {
+      await query(
+        `INSERT INTO OtherSubmission (assignment_id, account_id, submission_time, file_path)
+         VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           submission_time = VALUES(submission_time),
+           file_path = VALUES(file_path)`,
+        [assignmentId, session.account_id, submissionTime, filePaths.join(",")]
+      );
+    }
 
     return new Response(
       JSON.stringify({

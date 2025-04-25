@@ -36,7 +36,7 @@ const CourseCard = ({ course, onEnroll }) => {
       style={{ width: "298px", flexGrow: 0 }}
     >
       <img
-        src={course.imageUrl}
+        src={course.imageUrl || "/courses/defaultCourseImage.jpg"}
         alt={course.title}
         className="h-40 w-full object-cover rounded mb-4"
       />
