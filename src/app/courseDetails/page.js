@@ -230,6 +230,17 @@ const CourseDetails = () => {
                                 )}
                               </ul>
 
+                              <Button
+                                text="Submit"
+                                onClick={() =>
+                                  setShowSubmitConfirm({
+                                    title: assignment.assignment_title,
+                                    id: assignment.assignment_id,
+                                  })
+                                }
+                                className="mt-2 px-3 py-1 text-slate-950 bg-emerald-200 hover:bg-green-400"
+                              />
+
                               {showSubmitConfirm && (
                                 <ConfirmationPopup
                                   title="Confirm Submission"
@@ -243,17 +254,6 @@ const CourseDetails = () => {
                                   onCancel={() => setShowSubmitConfirm(null)}
                                 />
                               )}
-
-                              <Button
-                                text="Submit"
-                                onClick={() =>
-                                  setShowSubmitConfirm({
-                                    title: assignment.assignment_title,
-                                    id: assignment.assignment_id,
-                                  })
-                                }
-                                className="mt-2 px-3 py-1 text-slate-950 bg-emerald-200 hover:bg-green-400"
-                              />
                             </div>
                           )}
 
@@ -286,6 +286,17 @@ const CourseDetails = () => {
                               </ul>
 
                               <div className="flex gap-2 mt-2">
+                                <Button
+                                  text="Unsubmit"
+                                  onClick={() =>
+                                    setShowUnsubmitConfirm({
+                                      title: assignment.assignment_title,
+                                      id: assignment.assignment_id,
+                                    })
+                                  }
+                                  className="px-3 py-1 text-slate-950 bg-red-300 hover:bg-rose-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-pink-800 active:text-white active:border-rose-400"
+                                />
+
                                 {showUnsubmitConfirm && (
                                   <ConfirmationPopup
                                     title="Confirm Unsubmit"
@@ -301,17 +312,6 @@ const CourseDetails = () => {
                                     }
                                   />
                                 )}
-
-                                <Button
-                                  text="Unsubmit"
-                                  onClick={() =>
-                                    setShowUnsubmitConfirm({
-                                      title: assignment.assignment_title,
-                                      id: assignment.assignment_id,
-                                    })
-                                  }
-                                  className="px-3 py-1 text-slate-950 bg-red-300 hover:bg-rose-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-pink-800 active:text-white active:border-rose-400"
-                                />
                               </div>
                             </div>
                           )}

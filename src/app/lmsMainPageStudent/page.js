@@ -5,6 +5,7 @@ import NavBar from "../components/NavBar";
 import CourseList from "../components/CourseList";
 import Filter from "../components/Filter";
 import Footer from "../components/Footer";
+import EmptyState from "../components/EmptyState";
 
 export default function LmsMainPage() {
   const [filter, setFilter] = useState("all");
@@ -156,11 +157,27 @@ export default function LmsMainPage() {
         <h2 className="text-2xl font-semibold text-gray-800 mb-6">
           Your Courses
         </h2>
-        <CourseList courses={filteredYourCourses} />
+        {filteredYourCourses.length > 0 ? (
+          <CourseList courses={filteredYourCourses} />
+        ) : (
+          <EmptyState
+            message={`No enrolled courses match "${filter}" filter`}
+          />
+        )}
         <h2 className="text-2xl font-semibold text-gray-800 mt-12 mb-6">
           Public Courses
         </h2>
-        <CourseList courses={filteredPublicCourses} onEnroll={handleEnroll} />
+        {filteredPublicCourses.length > 0 ? (
+          <CourseList courses={filteredPublicCourses} onEnroll={handleEnroll} />
+        ) : (
+          <EmptyState
+            message={
+              publicCourses.length === 0
+                ? "No public courses available"
+                : `No public courses match "${filter}" filter`
+            }
+          />
+        )}
       </main>
       <Footer />
     </div>
