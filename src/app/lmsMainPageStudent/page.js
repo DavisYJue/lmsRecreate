@@ -53,6 +53,32 @@ export default function LmsMainPage() {
     }
   };
 
+  const filterCourses = (courses) => {
+    const currentDate = new Date();
+    return courses.filter((course) => {
+      if (filter === "all") return true;
+
+      // Parse course dates from dateRange string if needed
+      const [startStr, endStr] = course.dateRange.split(" - ");
+      const startDate = new Date(startStr);
+      const endDate = new Date(endStr);
+
+      switch (filter) {
+        case "ongoing":
+          return currentDate >= startDate && currentDate <= endDate;
+        case "completed":
+          return currentDate > endDate;
+        case "outdated":
+          return currentDate < startDate;
+        default:
+          return true;
+      }
+    });
+  };
+
+  const filteredYourCourses = filterCourses(yourCourses);
+  const filteredPublicCourses = filterCourses(publicCourses);
+
   useEffect(() => {
     fetchUserDataAndCourses();
   }, [router]);
@@ -79,12 +105,28 @@ export default function LmsMainPage() {
     }
   };
 
-  const filteredYourCourses = yourCourses.filter(
-    (course) => filter === "all" || course.status === filter
-  );
-  const filteredPublicCourses = publicCourses.filter(
-    (course) => filter === "all" || course.status === filter
-  );
+  const calculateCounts = (courses) => ({
+    all: courses.length,
+    ongoing: courses.filter((c) => c.status === "ongoing").length,
+    completed: courses.filter((c) => c.status === "completed").length,
+    outdated: courses.filter((c) => c.status === "outdated").length,
+  });
+
+  // Add to component state
+  const [courseCounts, setCourseCounts] = useState({
+    yourCourses: { all: 0, ongoing: 0, completed: 0, outdated: 0 },
+    publicCourses: { all: 0, ongoing: 0, completed: 0, outdated: 0 },
+  });
+
+  // Update after fetching data
+  useEffect(() => {
+    if (yourCourses.length > 0 || publicCourses.length > 0) {
+      setCourseCounts({
+        yourCourses: calculateCounts(yourCourses),
+        publicCourses: calculateCounts(publicCourses),
+      });
+    }
+  }, [yourCourses, publicCourses]);
 
   if (isLoading) {
     return (
@@ -106,7 +148,11 @@ export default function LmsMainPage() {
     >
       <NavBar username={username} />
       <main className="flex-grow p-8 flex flex-col">
-        <Filter filter={filter} onChange={handleFilterChange} />
+        <Filter
+          filter={filter}
+          onChange={handleFilterChange}
+          courseCounts={courseCounts.yourCourses}
+        />
         <h2 className="text-2xl font-semibold text-gray-800 mb-6">
           Your Courses
         </h2>
