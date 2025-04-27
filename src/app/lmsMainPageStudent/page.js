@@ -161,7 +161,9 @@ export default function LmsMainPage() {
           <CourseList courses={filteredYourCourses} />
         ) : (
           <EmptyState
-            message={`No enrolled courses match "${filter}" filter`}
+            message={`No enrolled courses match "${
+              filter.charAt(0).toUpperCase() + filter.slice(1)
+            }" filter`}
           />
         )}
         <h2 className="text-2xl font-semibold text-gray-800 mt-12 mb-6">

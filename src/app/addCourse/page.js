@@ -12,33 +12,74 @@ const AddCourse = () => {
   const [courseImage, setCourseImage] = useState(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [courseVisibility, setCourseVisibility] = useState("public"); // New state for visibility
+  const [courseVisibility, setCourseVisibility] = useState("public");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        alert("Please upload an image file");
+        return;
+      }
+
+      // Validate file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert("File size must be less than 10MB");
+        return;
+      }
+    }
     setCourseImage(file);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    if (!courseTitle || !courseDescription || !startDate || !endDate) {
-      alert("Please fill in all fields.");
-      return;
+    try {
+      // Validate required fields
+      if (!courseTitle || !courseDescription || !startDate || !endDate) {
+        alert("Please fill in all required fields.");
+        return;
+      }
+
+      // Validate date range
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      if (start > end) {
+        alert("End date must be after start date");
+        return;
+      }
+
+      // Prepare form data
+      const formData = new FormData();
+      formData.append("courseTitle", courseTitle);
+      formData.append("courseDescription", courseDescription);
+      formData.append("startDate", startDate);
+      formData.append("endDate", endDate);
+      formData.append("courseVisibility", courseVisibility);
+      if (courseImage) formData.append("courseImage", courseImage);
+
+      // Submit to API
+      const response = await fetch("/api/courses/add", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert("Course created successfully!"); // Added success alert
+        router.push("/manageMainPage");
+      } else {
+        alert(data.error || "Failed to add course. Please try again.");
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      alert("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Simulate saving course (Replace with API call)
-    console.log("New Course Added:", {
-      courseTitle,
-      courseDescription,
-      courseImage,
-      startDate,
-      endDate,
-      courseVisibility,
-    });
-
-    // Redirect to Manage Course page
-    router.push("/manageCourse");
   };
 
   return (
@@ -56,9 +97,10 @@ const AddCourse = () => {
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Course Title */}
           <div>
             <label className="block text-gray-700 font-semibold">
-              Course Title
+              Course Title *
             </label>
             <input
               type="text"
@@ -70,9 +112,10 @@ const AddCourse = () => {
             />
           </div>
 
+          {/* Course Description */}
           <div>
             <label className="block text-gray-700 font-semibold">
-              Course Description
+              Course Description *
             </label>
             <textarea
               value={courseDescription}
@@ -83,6 +126,7 @@ const AddCourse = () => {
             />
           </div>
 
+          {/* Course Image */}
           <div>
             <label className="block text-gray-700 font-semibold">
               Course Image
@@ -93,14 +137,18 @@ const AddCourse = () => {
               onChange={handleFileChange}
               className="w-full p-2 border border-gray-300 rounded-md"
             />
+            <p className="text-sm text-gray-500 mt-1">
+              Maximum file size: 10MB (JPEG, PNG, GIF)
+            </p>
           </div>
 
+          {/* Course Duration */}
           <div>
             <label className="block text-gray-700 font-semibold">
-              Course Duration
+              Course Duration *
             </label>
             <div className="flex gap-4">
-              <div>
+              <div className="flex-1">
                 <label className="text-gray-600 text-sm">Start Date</label>
                 <input
                   type="date"
@@ -110,7 +158,7 @@ const AddCourse = () => {
                   required
                 />
               </div>
-              <div>
+              <div className="flex-1">
                 <label className="text-gray-600 text-sm">End Date</label>
                 <input
                   type="date"
@@ -123,7 +171,7 @@ const AddCourse = () => {
             </div>
           </div>
 
-          {/* New Course Visibility Section */}
+          {/* Course Visibility */}
           <div>
             <label className="block text-gray-700 font-semibold">
               Course Visibility
@@ -152,11 +200,15 @@ const AddCourse = () => {
             </div>
           </div>
 
+          {/* Form Actions */}
           <div className="mt-6 flex gap-2 justify-end">
             <Button
               type="submit"
-              text="Save Course"
-              className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
+              text={isSubmitting ? "Saving..." : "Add Course"}
+              disabled={isSubmitting}
+              className={`px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400 ${
+                isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+              }`}
             />
             <Button
               onClick={() => router.push("/manageMainPage")}

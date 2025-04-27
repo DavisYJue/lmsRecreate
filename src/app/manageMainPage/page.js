@@ -7,6 +7,7 @@ import Footer from "../components/Footer";
 import Button from "../components/Button";
 import Link from "next/link";
 import ConfirmationPopup from "../components/ConfirmationPopup";
+import EmptyState from "../components/EmptyState";
 
 const ManageMainPage = () => {
   const router = useRouter();
@@ -116,7 +117,7 @@ const ManageMainPage = () => {
               </li>
             ))
           ) : (
-            <p className="text-center text-gray-700">No courses found.</p>
+            <EmptyState message="No courses found. Start by creating your first course !" />
           )}
         </ul>
       </main>

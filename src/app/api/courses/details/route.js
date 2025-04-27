@@ -20,8 +20,6 @@ export async function GET() {
       return Response.json({ error: "No course selected" }, { status: 400 });
     }
 
-    console.log("Fetching course details for course ID:", courseId);
-
     // Get base course data
     const [course] = await query(`SELECT * FROM course WHERE course_id = ?`, [
       courseId,

@@ -42,6 +42,11 @@ export async function GET() {
                    JOIN assistant_course ac ON ac.course_id = c.course_id
                    WHERE ac.assistant_id = ?`;
       courses = await query(sql, [assistant_id]);
+    } else if (role === "administrator") {
+      // New administrator logic: get all courses
+      const sql = `SELECT course_id, course_title, course_description 
+                   FROM course`;
+      courses = await query(sql);
     } else {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
