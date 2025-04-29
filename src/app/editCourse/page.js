@@ -1,71 +1,127 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
 
 const EditCourse = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const courseId = searchParams.get("id");
+  const [loading, setLoading] = useState(true);
+  const [formError, setFormError] = useState("");
+  const [courseData, setCourseData] = useState(null);
 
+  // Form states
   const [courseTitle, setCourseTitle] = useState("");
   const [courseDescription, setCourseDescription] = useState("");
   const [courseImage, setCourseImage] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [courseVisibility, setCourseVisibility] = useState("public"); // New state for visibility
+  const [courseVisibility, setCourseVisibility] = useState("public");
 
   useEffect(() => {
-    if (courseId) {
-      const fetchCourseData = async () => {
-        // Simulated course data (Replace with API call)
-        const courseData = {
-          courseTitle: "Sample Course",
-          courseDescription: "This is a sample course description.",
-          startDate: "2025-04-01",
-          endDate: "2025-06-30",
-          courseVisibility: "private", // Simulated existing visibility
-        };
-        setCourseTitle(courseData.courseTitle);
-        setCourseDescription(courseData.courseDescription);
-        setStartDate(courseData.startDate);
-        setEndDate(courseData.endDate);
-        setCourseVisibility(courseData.courseVisibility);
-      };
+    const fetchCourseData = async () => {
+      try {
+        const response = await fetch("/api/courses/getSelectedManage");
 
-      fetchCourseData();
-    }
-  }, [courseId]);
+        if (!response.ok) {
+          throw new Error("Failed to fetch course data");
+        }
+
+        const data = await response.json();
+        setCourseData(data);
+
+        const formatDate = (dateString) => {
+          const localDate = new Date(dateString);
+          return localDate.toLocaleDateString("en-CA"); // YYYY-MM-DD
+        };
+
+        setCourseTitle(data.course_title);
+        setCourseDescription(data.course_description);
+        setStartDate(formatDate(data.start_date));
+        setEndDate(formatDate(data.end_date));
+        setCourseVisibility(data.course_type);
+      } catch (error) {
+        console.error("Error fetching course:", error);
+        setFormError("Failed to load course data");
+        router.push("/manageMainPage");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourseData();
+  }, [router]);
+
+  useEffect(() => {
+    return () => {
+      if (previewImage) {
+        URL.revokeObjectURL(previewImage);
+      }
+    };
+  }, [previewImage]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    setCourseImage(file);
+    if (file) {
+      setCourseImage(file);
+      setPreviewImage(URL.createObjectURL(file));
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
 
     if (!courseTitle || !courseDescription || !startDate || !endDate) {
-      alert("Please fill in all fields.");
+      setFormError("Please fill in all required fields.");
       return;
     }
 
-    // Simulate saving course update (Replace with API call)
-    console.log("Course Updated:", {
-      courseId,
-      courseTitle,
-      courseDescription,
-      courseImage,
-      startDate,
-      endDate,
-      courseVisibility,
-    });
+    try {
+      const formData = new FormData();
+      formData.append("title", courseTitle);
+      formData.append("description", courseDescription);
+      formData.append("startDate", startDate);
+      formData.append("endDate", endDate);
+      formData.append("visibility", courseVisibility);
+      if (courseImage) {
+        formData.append("image", courseImage);
+      }
 
-    // Redirect to Manage Course page
-    router.push("/manageCourse");
+      const response = await fetch(`/api/courses/${courseData.course_id}`, {
+        method: "PUT",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update course");
+      }
+
+      router.push("/manageMainPage");
+    } catch (error) {
+      console.error("Update error:", error);
+      setFormError("Failed to update course. Please try again.");
+    }
   };
+
+  if (loading) {
+    return (
+      <div
+        className="min-h-screen flex flex-col"
+        style={{
+          backgroundImage: "linear-gradient(to bottom, #a9c3d2, #fcf4e7)",
+        }}
+      >
+        <Header title="Edit Course Information" />
+        <main className="max-w-3xl w-full mx-auto mt-6 mb-6 p-6 bg-white shadow-lg rounded-lg flex-1">
+          <p className="text-center">Loading course data...</p>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -78,6 +134,12 @@ const EditCourse = () => {
 
       <main className="max-w-3xl w-full mx-auto mt-6 mb-6 p-6 bg-white shadow-lg rounded-lg flex-1">
         <h2 className="text-2xl font-bold mb-4 text-slate-900">Edit Course</h2>
+
+        {formError && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
+            {formError}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -115,6 +177,26 @@ const EditCourse = () => {
               onChange={handleFileChange}
               className="w-full p-2 border border-gray-300 rounded-md"
             />
+            {(previewImage || courseData?.course_image) && (
+              <div className="mt-2">
+                <p className="text-sm text-gray-600 mb-1">
+                  {previewImage
+                    ? "New image preview:"
+                    : "Current image preview:"}
+                </p>
+                <a
+                  href={previewImage || courseData.course_image}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img
+                    src={previewImage || courseData.course_image}
+                    alt="Course"
+                    className="w-48 h-auto border border-gray-300 rounded-md shadow-md"
+                  />
+                </a>
+              </div>
+            )}
           </div>
 
           <div>
@@ -145,7 +227,6 @@ const EditCourse = () => {
             </div>
           </div>
 
-          {/* New Course Visibility Section */}
           <div>
             <label className="block text-gray-700 font-semibold">
               Course Visibility

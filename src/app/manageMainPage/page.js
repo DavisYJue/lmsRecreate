@@ -36,12 +36,6 @@ const ManageMainPage = () => {
     fetchCourses();
   }, []);
 
-  const handleManageClick = (courseId, courseData) => {
-    setSelectedCourseId(courseId);
-    setSelectedCourseData(courseData);
-    setIsPopupOpen(true);
-  };
-
   const confirmDeleteCourse = (id) => {
     setSelectedCourseId(id);
     setIsConfirmPopupOpen(true);
@@ -55,10 +49,34 @@ const ManageMainPage = () => {
     // optional: call API to delete from database too
   };
 
-  const handleEditCourse = (courseData) => {
-    // Use session storage to pass course data, or just set it in state if you prefer
-    sessionStorage.setItem("selectedCourse", JSON.stringify(courseData));
-    router.push("/editCourse");
+  const handleEditCourse = async (courseData) => {
+    try {
+      const response = await fetch("/api/courses/setSelectedManage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId: courseData.course_id }),
+      });
+
+      if (!response.ok) throw new Error("Failed to set course");
+      router.push("/editCourse");
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const handleManageClick = async (courseId) => {
+    try {
+      const response = await fetch("/api/courses/setSelectedManage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId }),
+      });
+
+      if (!response.ok) throw new Error("Failed to set course");
+      setIsPopupOpen(true);
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
   return (
