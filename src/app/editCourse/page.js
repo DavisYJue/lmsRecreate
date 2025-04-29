@@ -4,12 +4,14 @@ import { useRouter } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
+import ConfirmationPopup from "../components/ConfirmationPopup";
 
 const EditCourse = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [formError, setFormError] = useState("");
   const [courseData, setCourseData] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ show: false, type: null });
 
   // Form states
   const [courseTitle, setCourseTitle] = useState("");
@@ -39,12 +41,9 @@ const EditCourse = () => {
     };
 
     const initializeFormData = (data) => {
-      // Fixed date formatting to use local timezone
       const formatDate = (dateString) => {
         const date = new Date(dateString);
-        const offset = date.getTimezoneOffset();
-        const localDate = new Date(date.getTime() - offset * 60 * 1000);
-        return localDate.toISOString().split("T")[0];
+        return date.toISOString().split("T")[0];
       };
 
       setCourseTitle(data.course_title);
@@ -56,6 +55,31 @@ const EditCourse = () => {
 
     fetchCourseData();
   }, [router]);
+
+  const hasChanges = () => {
+    if (!courseData) return false;
+
+    const formatDate = (dateString) =>
+      new Date(dateString).toISOString().split("T")[0];
+    const originalStart = formatDate(courseData.start_date);
+    const originalEnd = formatDate(courseData.end_date);
+    const currentStart = formatDate(startDate);
+    const currentEnd = formatDate(endDate);
+
+    // Check if any data is changed
+    const imageChanged =
+      (courseImage && courseImage !== courseData.course_image) ||
+      (previewImage && previewImage !== courseData.course_image);
+
+    return (
+      courseTitle !== courseData.course_title ||
+      courseDescription !== courseData.course_description ||
+      currentStart !== originalStart ||
+      currentEnd !== originalEnd ||
+      courseVisibility !== courseData.course_type ||
+      imageChanged
+    );
+  };
 
   useEffect(
     () => () => {
@@ -84,12 +108,21 @@ const EditCourse = () => {
     return true;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setFormError("");
 
     if (!validateForm()) return;
 
+    if (hasChanges()) {
+      setConfirmModal({ show: true, type: "save" });
+    } else {
+      // No changes detected, proceed with the update without confirmation
+      handleUpdateConfirm();
+    }
+  };
+
+  const handleUpdateConfirm = async () => {
     try {
       const formData = new FormData();
       formData.append("title", courseTitle);
@@ -114,6 +147,24 @@ const EditCourse = () => {
     } catch (error) {
       console.error("Update error:", error);
       setFormError(error.message || "Failed to update course");
+    } finally {
+      setConfirmModal({ show: false, type: null });
+    }
+  };
+
+  const handleCancel = () => {
+    if (hasChanges()) {
+      setConfirmModal({ show: true, type: "cancel" });
+    } else {
+      router.push("/manageMainPage");
+    }
+  };
+
+  const handleModalConfirm = () => {
+    if (confirmModal.type === "save") {
+      handleUpdateConfirm();
+    } else {
+      router.push("/manageMainPage");
     }
   };
 
@@ -253,13 +304,28 @@ const EditCourse = () => {
               className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
             />
             <Button
-              onClick={() => router.push("/manageMainPage")}
+              onClick={handleCancel}
               text="Cancel"
               className="px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 font-bold border-2 border-slate-900 active:bg-slate-900 active:border-stone-50 delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100"
             />
           </div>
         </form>
       </main>
+
+      {confirmModal.show && (
+        <ConfirmationPopup
+          title={
+            confirmModal.type === "save" ? "Confirm Update" : "Confirm Cancel"
+          }
+          message={
+            confirmModal.type === "save"
+              ? "Are you sure you want to update this course?"
+              : "You have unsaved changes. Are you sure you want to cancel?"
+          }
+          onConfirm={handleModalConfirm}
+          onCancel={() => setConfirmModal({ show: false, type: null })}
+        />
+      )}
 
       <Footer />
     </div>
