@@ -24,24 +24,11 @@ const EditCourse = () => {
     const fetchCourseData = async () => {
       try {
         const response = await fetch("/api/courses/getSelectedManage");
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch course data");
-        }
+        if (!response.ok) throw new Error("Failed to fetch course data");
 
         const data = await response.json();
+        initializeFormData(data);
         setCourseData(data);
-
-        const formatDate = (dateString) => {
-          const localDate = new Date(dateString);
-          return localDate.toLocaleDateString("en-CA"); // YYYY-MM-DD
-        };
-
-        setCourseTitle(data.course_title);
-        setCourseDescription(data.course_description);
-        setStartDate(formatDate(data.start_date));
-        setEndDate(formatDate(data.end_date));
-        setCourseVisibility(data.course_type);
       } catch (error) {
         console.error("Error fetching course:", error);
         setFormError("Failed to load course data");
@@ -51,33 +38,57 @@ const EditCourse = () => {
       }
     };
 
+    const initializeFormData = (data) => {
+      // Fixed date formatting to use local timezone
+      const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        const offset = date.getTimezoneOffset();
+        const localDate = new Date(date.getTime() - offset * 60 * 1000);
+        return localDate.toISOString().split("T")[0];
+      };
+
+      setCourseTitle(data.course_title);
+      setCourseDescription(data.course_description);
+      setStartDate(formatDate(data.start_date));
+      setEndDate(formatDate(data.end_date));
+      setCourseVisibility(data.course_type);
+    };
+
     fetchCourseData();
   }, [router]);
 
-  useEffect(() => {
-    return () => {
-      if (previewImage) {
-        URL.revokeObjectURL(previewImage);
-      }
-    };
-  }, [previewImage]);
+  useEffect(
+    () => () => {
+      if (previewImage) URL.revokeObjectURL(previewImage);
+    },
+    [previewImage]
+  );
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setCourseImage(file);
-      setPreviewImage(URL.createObjectURL(file));
+    if (!file) return;
+
+    setCourseImage(file);
+    setPreviewImage(URL.createObjectURL(file));
+  };
+
+  const validateForm = () => {
+    if (!courseTitle || !startDate || !endDate) {
+      setFormError("Title and dates are required");
+      return false;
     }
+    if (new Date(startDate) > new Date(endDate)) {
+      setFormError("End date cannot be before start date");
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError("");
 
-    if (!courseTitle || !courseDescription || !startDate || !endDate) {
-      setFormError("Please fill in all required fields.");
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
       const formData = new FormData();
@@ -86,50 +97,30 @@ const EditCourse = () => {
       formData.append("startDate", startDate);
       formData.append("endDate", endDate);
       formData.append("visibility", courseVisibility);
-      if (courseImage) {
-        formData.append("image", courseImage);
-      }
+      if (courseImage) formData.append("image", courseImage);
 
-      const response = await fetch(`/api/courses/${courseData.course_id}`, {
+      const response = await fetch("/api/courses/edit", {
         method: "PUT",
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to update course");
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Update failed");
       }
 
       router.push("/manageMainPage");
     } catch (error) {
       console.error("Update error:", error);
-      setFormError("Failed to update course. Please try again.");
+      setFormError(error.message || "Failed to update course");
     }
   };
 
-  if (loading) {
-    return (
-      <div
-        className="min-h-screen flex flex-col"
-        style={{
-          backgroundImage: "linear-gradient(to bottom, #a9c3d2, #fcf4e7)",
-        }}
-      >
-        <Header title="Edit Course Information" />
-        <main className="max-w-3xl w-full mx-auto mt-6 mb-6 p-6 bg-white shadow-lg rounded-lg flex-1">
-          <p className="text-center">Loading course data...</p>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen />;
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{
-        backgroundImage: "linear-gradient(to bottom, #a9c3d2, #fcf4e7)",
-      }}
-    >
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#a9c3d2] to-[#fcf4e7]">
       <Header title="Edit Course Information" />
 
       <main className="max-w-3xl w-full mx-auto mt-6 mb-6 p-6 bg-white shadow-lg rounded-lg flex-1">
@@ -274,5 +265,15 @@ const EditCourse = () => {
     </div>
   );
 };
+
+const LoadingScreen = () => (
+  <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#a9c3d2] to-[#fcf4e7]">
+    <Header title="Edit Course Information" />
+    <main className="max-w-3xl w-full mx-auto mt-6 mb-6 p-6 bg-white shadow-lg rounded-lg flex-1">
+      <p className="text-center">Loading course data...</p>
+    </main>
+    <Footer />
+  </div>
+);
 
 export default EditCourse;
