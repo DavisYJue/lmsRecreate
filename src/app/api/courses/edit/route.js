@@ -6,11 +6,6 @@ import fs from "fs";
 import path from "path";
 import Busboy from "busboy";
 
-const getSelectedCourseId = () => {
-  const cookieStore = cookies();
-  return cookieStore.get("selectedCourseId")?.value;
-};
-
 const calculateDuration = (startDate, endDate) => {
   const start = new Date(startDate);
   const end = new Date(endDate);
@@ -28,7 +23,9 @@ const uploadFile = async (fileBuffer, fileName) => {
 };
 
 export async function PUT(request) {
-  const courseId = getSelectedCourseId();
+  // Retrieve cookies directly within the async PUT handler
+  const cookieStore = await cookies();
+  const courseId = cookieStore.get("selectedCourseId")?.value;
 
   if (!courseId) {
     return NextResponse.json(
