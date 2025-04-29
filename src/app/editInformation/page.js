@@ -16,6 +16,7 @@ export default function EditProfilePage() {
     address: "",
     bio: "",
     role: "student",
+    profile_image: "/profile/defaultProfile.webp",
   });
   const [originalData, setOriginalData] = useState(null);
   const [changePassword, setChangePassword] = useState(false);
@@ -59,6 +60,7 @@ export default function EditProfilePage() {
           address: data.address || "",
           bio: data.bio || "",
           role: data.role || "student",
+          profile_image: data.profile_image || "/profile/defaultProfile.webp",
         };
 
         setUserData(fetchedData);
@@ -96,18 +98,27 @@ export default function EditProfilePage() {
     }
 
     try {
-      const updateData = {
-        ...userData,
-        ...(changePassword && {
-          newPassword,
-          confirmNewPassword,
-        }),
-      };
+      const formData = new FormData();
+
+      // Append all fields
+      formData.append("username", userData.username);
+      formData.append("email", userData.email);
+      formData.append("telephone", userData.telephone);
+      formData.append("address", userData.address);
+      formData.append("bio", userData.bio);
+
+      if (changePassword) {
+        formData.append("newPassword", newPassword);
+        formData.append("confirmNewPassword", confirmNewPassword);
+      }
+
+      if (profilePicture?.file) {
+        formData.append("profilePicture", profilePicture.file);
+      }
 
       const response = await fetch("/api/user", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updateData),
+        body: formData,
       });
 
       const result = await response.json();
@@ -160,7 +171,10 @@ export default function EditProfilePage() {
   const handleProfilePictureChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setProfilePicture(URL.createObjectURL(file));
+      setProfilePicture({
+        preview: URL.createObjectURL(file),
+        file,
+      });
     }
   };
 
@@ -191,15 +205,18 @@ export default function EditProfilePage() {
           )}
 
           <div className="mb-4 text-center">
-            {profilePicture && (
-              <img
-                src={profilePicture}
-                alt="Profile Preview"
-                className="w-32 h-32 rounded-full object-cover mx-auto mb-4"
-              />
-            )}
+            <img
+              src={
+                profilePicture?.preview ||
+                userData.profile_image ||
+                "/profile/defaultProfile.webp"
+              }
+              alt="Profile Preview"
+              className="w-32 h-32 rounded-full object-cover mx-auto mb-4"
+            />
             <input
               type="file"
+              accept="image/*"
               onChange={handleProfilePictureChange}
               className="block w-full text-sm text-gray-500
                 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0

@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 const NavBar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [username, setUsername] = useState("");
+  const [profileImage, setProfileImage] = useState(
+    "/profile/defaultProfile.webp"
+  );
   const [isLoading, setIsLoading] = useState(true);
   const dropdownRef = useRef(null);
   const router = useRouter();
@@ -17,10 +20,11 @@ const NavBar = () => {
 
         const userData = await response.json();
         setUsername(userData.username);
+        if (userData.profile_image) {
+          setProfileImage(userData.profile_image);
+        }
       } catch (error) {
         console.error("Error fetching user:", error);
-
-        // Redirect to login with error message
         router.push("/?error=relogin");
       } finally {
         setIsLoading(false);
@@ -64,9 +68,17 @@ const NavBar = () => {
         ref={dropdownRef}
       >
         {!isLoading && (
-          <span className="text-md text-slate-950 truncate max-w-[200px]">
-            Hello, {username} !
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-md text-slate-950 truncate max-w-[200px]">
+              Hello, {username} !
+            </span>
+
+            <img
+              src={profileImage}
+              alt="Profile"
+              className="w-12 h-12 rounded-full object-cover border-2 border-slate-900"
+            />
+          </div>
         )}
         <button
           onClick={toggleDropdown}
