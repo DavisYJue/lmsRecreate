@@ -3,11 +3,11 @@ import { cookies } from "next/headers";
 
 export async function DELETE(request) {
   try {
-    const { student_id } = await request.json();
+    const { accountId } = await request.json();
     const cookieStore = await cookies();
     const courseId = cookieStore.get("selectedCourseId")?.value;
 
-    if (!courseId || !student_id) {
+    if (!courseId || !accountId) {
       return new Response(
         JSON.stringify({
           error: "MISSING_DATA",
@@ -17,17 +17,16 @@ export async function DELETE(request) {
       );
     }
 
-    // Remove enrollment
     await query(
-      `DELETE FROM enrollment 
-       WHERE student_id = ? AND course_id = ?`,
-      [student_id, courseId]
+      `DELETE FROM otherenrollment 
+       WHERE account_id = ? AND course_id = ?`,
+      [accountId, courseId]
     );
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Student removed successfully",
+        message: "Enrollment removed successfully",
       }),
       { status: 200 }
     );

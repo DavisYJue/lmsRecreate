@@ -1,17 +1,32 @@
 import Button from "./Button";
 
 const DataTable = ({ data, searchQuery, onRemove, entityType }) => {
+  // Get field names based on entity type
+  const fields = {
+    Student: { name: "student_name", id: "student_id", extra: "class" },
+    Teacher: { name: "teacher_name", id: "teacher_id", extra: "faculty" },
+    Assistant: {
+      name: "assistant_name",
+      id: "assistant_id",
+      extra: "department",
+    },
+  }[entityType];
+
   return (
     <table className="w-full border-collapse border border-gray-300">
       <thead>
         <tr className="bg-gray-200">
           <th className="border border-gray-300 p-2">Name</th>
-          <th className="border border-gray-300 p-2">ID</th>
-          {entityType === "Assistant" ? (
-            <th className="border border-gray-300 p-2">Department</th>
-          ) : (
-            <th className="border border-gray-300 p-2">Class</th>
-          )}
+          <th className="border border-gray-300 p-2">
+            {entityType === "Student" ? "Student ID" : "Account ID"}
+          </th>
+          <th className="border border-gray-300 p-2">
+            {entityType === "Assistant"
+              ? "Department"
+              : entityType === "Teacher"
+              ? "Faculty"
+              : "Class"}
+          </th>
           <th className="border border-gray-300 p-2">Actions</th>
         </tr>
       </thead>
@@ -19,28 +34,25 @@ const DataTable = ({ data, searchQuery, onRemove, entityType }) => {
         {data
           .filter((item) => {
             const searchTerm = searchQuery.toLowerCase();
+            const name = String(item[fields.name] || "").toLowerCase();
+            const id = String(item[fields.id] || "").toLowerCase();
+            const extra = String(item[fields.extra] || "").toLowerCase();
+
             return (
-              item.student_name.toLowerCase().includes(searchTerm) ||
-              String(item.student_id).toLowerCase().includes(searchTerm) ||
-              (entityType === "Student" &&
-                item.class?.toString().toLowerCase().includes(searchTerm)) ||
-              (entityType === "Assistant" &&
-                item.department?.toString().toLowerCase().includes(searchTerm))
+              name.includes(searchTerm) ||
+              id.includes(searchTerm) ||
+              extra.includes(searchTerm)
             );
           })
           .map((item) => (
-            <tr key={item.student_id} className="border border-gray-300">
+            <tr key={item[fields.id]} className="border border-gray-300">
               <td className="border border-gray-300 p-2">
-                {item.student_name}
+                {item[fields.name]}
               </td>
-              <td className="border border-gray-300 p-2">{item.student_id}</td>
-              {entityType === "Assistant" ? (
-                <td className="border border-gray-300 p-2">
-                  {item.department}
-                </td>
-              ) : (
-                <td className="border border-gray-300 p-2">{item.class}</td>
-              )}
+              <td className="border border-gray-300 p-2">{item[fields.id]}</td>
+              <td className="border border-gray-300 p-2">
+                {item[fields.extra]}
+              </td>
               <td className="border border-gray-300 p-2 text-center">
                 <Button
                   text={`Remove ${entityType}`}

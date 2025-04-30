@@ -3,11 +3,11 @@ import { cookies } from "next/headers";
 
 export async function POST(request) {
   try {
-    const { student_id, accountId } = await request.json();
-    const cookieStore = await cookie();
+    const { teacher_id } = await request.json();
+    const cookieStore = await cookies();
     const courseId = cookieStore.get("selectedCourseId")?.value;
 
-    if (!courseId || !student_id || !accountId) {
+    if (!courseId || !teacher_id) {
       return new Response(
         JSON.stringify({
           error: "MISSING_DATA",
@@ -17,34 +17,33 @@ export async function POST(request) {
       );
     }
 
-    // Verify student exists
-    const [student] = await query(
-      "SELECT * FROM student WHERE student_id = ?",
-      [student_id]
+    // Get teacher's account_id
+    const [teacher] = await query(
+      "SELECT account_id FROM teacher WHERE teacher_id = ?",
+      [teacher_id]
     );
 
-    if (!student) {
+    if (!teacher) {
       return new Response(
         JSON.stringify({
           error: "NOT_FOUND",
-          message: "Student not found",
+          message: "Teacher not found",
         }),
         { status: 404 }
       );
     }
 
-    // Enroll student only
     await query(
-      `INSERT INTO enrollment 
-       (student_id, course_id, enrollment_date)
-       VALUES (?, ?, NOW())`,
-      [student_id, courseId]
+      `INSERT INTO otherenrollment 
+       (account_id, course_id, enrollment_date, status)
+       VALUES (?, ?, NOW(), 'active')`,
+      [teacher.account_id, courseId]
     );
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Student enrolled successfully",
+        message: "Teacher enrolled successfully",
       }),
       { status: 200 }
     );
