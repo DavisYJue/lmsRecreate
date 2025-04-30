@@ -10,80 +10,146 @@ import SearchInput from "../components/SearchInput";
 
 const ManageStudents = () => {
   const router = useRouter();
-
   const [students, setStudents] = useState([]);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(""); // Search for student table
-  const [popupSearchQuery, setPopupSearchQuery] = useState(""); // Search for add student popup
-  const [confirmStudent, setConfirmStudent] = useState(null); // Store student before confirmation
-  const [availableStudents, setAvailableStudents] = useState([
-    // Dummy data
-    { id: 3, name: "Alice Johnson", studentId: "S103", class: "Math 101" },
-    { id: 4, name: "Bob Brown", studentId: "S104", class: "Physics 101" },
-  ]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [popupSearchQuery, setPopupSearchQuery] = useState("");
+  const [confirmStudent, setConfirmStudent] = useState(null);
+  const [availableStudents, setAvailableStudents] = useState([]);
+  const [confirmRemoveStudent, setConfirmRemoveStudent] = useState(null);
 
+  // Fetch enrolled students
   useEffect(() => {
     const fetchStudentData = async () => {
       try {
-        const res = await fetch("/api/courses/getStudentData");
-        if (!res.ok) {
-          throw new Error("Failed to fetch student data");
-        }
-
+        const res = await fetch("/api/courses/getStudentData", {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Failed to fetch student data");
         const data = await res.json();
-        // Ensure you are passing the correct data to the DataTable
         setStudents(data.students);
       } catch (error) {
         console.error("Error fetching student data:", error);
+        alert("Failed to load student data. Please try again.");
       }
     };
-
     fetchStudentData();
   }, []);
 
-  const confirmAddStudent = (student) => {
-    setConfirmStudent(student); // Set student before confirming
-  };
-
-  const addStudent = () => {
-    if (confirmStudent) {
-      setStudents([...students, confirmStudent]);
-      setAvailableStudents(
-        availableStudents.filter((s) => s.id !== confirmStudent.id)
-      );
-      setConfirmStudent(null); // Reset confirmation state
-      setIsPopupOpen(false);
+  // Fetch available students for popup
+  const fetchAvailableStudents = async () => {
+    try {
+      const res = await fetch("/api/courses/notEnrolled", {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to fetch students");
+      }
+      const data = await res.json();
+      setAvailableStudents(data);
+    } catch (error) {
+      console.error("Error fetching available students:", error);
+      alert(error.message);
     }
   };
 
-  const [confirmRemoveStudent, setConfirmRemoveStudent] = useState(null);
+  const openPopup = () => {
+    fetchAvailableStudents();
+    setIsPopupOpen(true);
+  };
+
+  const confirmAddStudent = (student) => {
+    setConfirmStudent(student);
+  };
+
+  const addStudent = async () => {
+    if (!confirmStudent) return;
+
+    try {
+      const res = await fetch("/api/courses/enrollStudent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          studentId: confirmStudent.student_id,
+        }),
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to enroll student");
+      }
+
+      setStudents([...students, confirmStudent]);
+      setAvailableStudents(
+        availableStudents.filter(
+          (s) => s.student_id !== confirmStudent.student_id
+        )
+      );
+
+      // Add success alert
+      alert(
+        `${confirmStudent.student_name} has been successfully added to the course!`
+      );
+    } catch (error) {
+      console.error("Error adding student:", error);
+      alert(error.message);
+    } finally {
+      setConfirmStudent(null);
+      setIsPopupOpen(false);
+    }
+  };
 
   const confirmRemove = (student) => {
     setConfirmRemoveStudent(student);
   };
 
-  const removeStudentConfirmed = () => {
-    if (confirmRemoveStudent) {
+  const removeStudentConfirmed = async () => {
+    if (!confirmRemoveStudent) return;
+
+    try {
+      const res = await fetch("/api/courses/removeStudent", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          studentId: confirmRemoveStudent.student_id,
+        }),
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to remove student");
+      }
+
       setStudents(
-        students.filter((student) => student.id !== confirmRemoveStudent.id)
+        students.filter(
+          (student) => student.student_id !== confirmRemoveStudent.student_id
+        )
       );
-      setConfirmRemoveStudent(null); // Reset confirmation state
+
+      // Add success alert
+      alert(
+        `${confirmRemoveStudent.student_name} has been successfully removed from the course!`
+      );
+    } catch (error) {
+      console.error("Error removing student:", error);
+      alert(error.message);
+    } finally {
+      setConfirmRemoveStudent(null);
     }
   };
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{
-        backgroundImage: "linear-gradient(to bottom, #a9c3d2, #fcf4e7)",
-      }}
-    >
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#a9c3d2] to-[#fcf4e7]">
       <Header title="Manage Course's Students" />
 
       <main className="max-w-4xl w-full mx-auto mt-6 mb-6 p-6 bg-white shadow-lg rounded-lg flex-1">
         <h2 className="text-2xl font-bold mb-4 text-slate-900">Students</h2>
 
-        {/* Page Search Bar */}
         <SearchInput
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -92,11 +158,10 @@ const ManageStudents = () => {
 
         <Button
           text="Add Student"
-          onClick={() => setIsPopupOpen(true)}
+          onClick={openPopup}
           className="mb-4 px-4 py-2 text-slate-950 bg-blue-300 rounded-lg hover:bg-indigo-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-indigo-950 active:text-white active:border-indigo-400"
         />
 
-        {/* Student Table */}
         <DataTable
           data={students}
           searchQuery={searchQuery}
@@ -104,12 +169,10 @@ const ManageStudents = () => {
           entityType="Student"
         />
 
-        {/* Add Student Popup */}
         {isPopupOpen && (
           <div className="fixed inset-0 bg-opacity-30 backdrop-blur-md flex justify-center items-center">
             <div className="bg-white border-3 p-6 rounded-md shadow-lg w-96">
               <h3 className="text-xl font-bold mb-4">Add Student</h3>
-
               <SearchInput
                 value={popupSearchQuery}
                 onChange={(e) => setPopupSearchQuery(e.target.value)}
@@ -118,25 +181,19 @@ const ManageStudents = () => {
 
               <ul className="max-h-40 overflow-auto border rounded-md">
                 {availableStudents
-                  .filter(
-                    (student) =>
-                      student.name
-                        .toLowerCase()
-                        .includes(popupSearchQuery.toLowerCase()) ||
-                      student.studentId
-                        .toLowerCase()
-                        .includes(popupSearchQuery.toLowerCase()) ||
-                      student.class
-                        .toLowerCase()
-                        .includes(popupSearchQuery.toLowerCase())
+                  .filter((student) =>
+                    `${student.student_name} ${student.student_id} ${student.class}`
+                      .toLowerCase()
+                      .includes(popupSearchQuery.toLowerCase())
                   )
                   .map((student) => (
                     <li
-                      key={student.id}
+                      key={student.student_id}
                       className="p-2 border-b flex justify-between items-center"
                     >
                       <span>
-                        {student.name} ({student.studentId}) - {student.class}
+                        {student.student_name} ({student.student_id}) -{" "}
+                        {student.class}
                       </span>
                       <Button
                         text="Add"
@@ -147,22 +204,21 @@ const ManageStudents = () => {
                   ))}
               </ul>
 
-              <div className="flex justify-center">
+              <div className="flex justify-center mt-4">
                 <Button
                   text="Close"
                   onClick={() => setIsPopupOpen(false)}
-                  className="mt-4 px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 font-bold border-2 border-slate-900 active:bg-slate-900 active:border-stone-50 delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100"
+                  className="px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 font-bold border-2 border-slate-900 active:bg-slate-900 active:border-stone-50 transition"
                 />
               </div>
             </div>
           </div>
         )}
 
-        {/* Confirmation Popups */}
         {confirmStudent && (
           <ConfirmationPopup
             title="Confirm Add Student"
-            message={`Are you sure you want to add ${confirmStudent.name} (${confirmStudent.studentId}) from ${confirmStudent.class}?`}
+            message={`Add ${confirmStudent.student_name} (${confirmStudent.student_id}) from ${confirmStudent.class}?`}
             onConfirm={addStudent}
             onCancel={() => setConfirmStudent(null)}
           />
@@ -171,7 +227,7 @@ const ManageStudents = () => {
         {confirmRemoveStudent && (
           <ConfirmationPopup
             title="Confirm Remove Student"
-            message={`Are you sure you want to remove ${confirmRemoveStudent.name} (${confirmRemoveStudent.studentId}) from ${confirmRemoveStudent.class}?`}
+            message={`Remove ${confirmRemoveStudent.student_name} (${confirmRemoveStudent.student_id})?`}
             onConfirm={removeStudentConfirmed}
             onCancel={() => setConfirmRemoveStudent(null)}
           />
