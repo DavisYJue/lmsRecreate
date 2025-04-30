@@ -192,7 +192,7 @@ const ManageStudents = () => {
                       className="p-2 border-b flex justify-between items-center"
                     >
                       <span>
-                        {student.student_name} ({student.student_id}) -{" "}
+                        {student.student_name} | {student.student_id} |{" "}
                         {student.class}
                       </span>
                       <Button

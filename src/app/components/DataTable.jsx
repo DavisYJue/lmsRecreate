@@ -17,23 +17,17 @@ const DataTable = ({ data, searchQuery, onRemove, entityType }) => {
       </thead>
       <tbody>
         {data
-          .filter(
-            (item) =>
-              item.student_name
-                .toLowerCase()
-                .includes(searchQuery.toLowerCase()) ||
-              item.student_id
-                .toLowerCase()
-                .includes(searchQuery.toLowerCase()) ||
+          .filter((item) => {
+            const searchTerm = searchQuery.toLowerCase();
+            return (
+              item.student_name.toLowerCase().includes(searchTerm) ||
+              String(item.student_id).toLowerCase().includes(searchTerm) ||
               (entityType === "Student" &&
-                item.class
-                  ?.toLowerCase()
-                  .includes(searchQuery.toLowerCase())) ||
+                item.class?.toString().toLowerCase().includes(searchTerm)) ||
               (entityType === "Assistant" &&
-                item.department
-                  ?.toLowerCase()
-                  .includes(searchQuery.toLowerCase()))
-          )
+                item.department?.toString().toLowerCase().includes(searchTerm))
+            );
+          })
           .map((item) => (
             <tr key={item.student_id} className="border border-gray-300">
               <td className="border border-gray-300 p-2">
