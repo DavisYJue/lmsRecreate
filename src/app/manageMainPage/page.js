@@ -64,7 +64,7 @@ const ManageMainPage = () => {
     }
   };
 
-  const handleManageClick = async (courseId) => {
+  const handleManageClick = async (courseId, courseData) => {
     try {
       const response = await fetch("/api/courses/setSelectedManage", {
         method: "POST",
@@ -73,6 +73,9 @@ const ManageMainPage = () => {
       });
 
       if (!response.ok) throw new Error("Failed to set course");
+
+      // Store the selected course data in state
+      setSelectedCourseData(courseData);
       setIsPopupOpen(true);
     } catch (error) {
       console.error("Error:", error);

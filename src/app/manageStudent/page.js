@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
@@ -10,67 +10,36 @@ import SearchInput from "../components/SearchInput";
 
 const ManageStudents = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const courseId = searchParams.get("id");
 
   const [students, setStudents] = useState([]);
-  const [assignments, setAssignments] = useState([]);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(""); // Search for student table
   const [popupSearchQuery, setPopupSearchQuery] = useState(""); // Search for add student popup
   const [confirmStudent, setConfirmStudent] = useState(null); // Store student before confirmation
   const [availableStudents, setAvailableStudents] = useState([
+    // Dummy data
     { id: 3, name: "Alice Johnson", studentId: "S103", class: "Math 101" },
     { id: 4, name: "Bob Brown", studentId: "S104", class: "Physics 101" },
   ]);
 
   useEffect(() => {
-    if (courseId) {
-      const fetchCourseData = async () => {
-        // Simulated student and assignment data (Replace with API call)
-        const studentsData = [
-          {
-            id: 1,
-            name: "John Doe",
-            studentId: "S101",
-            email: "john@example.com",
-            class: "Math 101",
-          },
-          {
-            id: 2,
-            name: "Jane Smith",
-            studentId: "S102",
-            email: "jane@example.com",
-            class: "Physics 101",
-          },
-        ];
+    const fetchStudentData = async () => {
+      try {
+        const res = await fetch("/api/courses/getStudentData");
+        if (!res.ok) {
+          throw new Error("Failed to fetch student data");
+        }
 
-        const assignmentsData = [
-          {
-            id: 101,
-            title: "Assignment 1",
-            submissions: [
-              { studentId: 1, status: "Submitted" },
-              { studentId: 2, status: "Not Submitted" },
-            ],
-          },
-          {
-            id: 102,
-            title: "Assignment 2",
-            submissions: [
-              { studentId: 1, status: "Graded" },
-              { studentId: 2, status: "Submitted" },
-            ],
-          },
-        ];
+        const data = await res.json();
+        // Ensure you are passing the correct data to the DataTable
+        setStudents(data.students);
+      } catch (error) {
+        console.error("Error fetching student data:", error);
+      }
+    };
 
-        setStudents(studentsData);
-        setAssignments(assignmentsData);
-      };
-
-      fetchCourseData();
-    }
-  }, [courseId]);
+    fetchStudentData();
+  }, []);
 
   const confirmAddStudent = (student) => {
     setConfirmStudent(student); // Set student before confirming
@@ -189,7 +158,7 @@ const ManageStudents = () => {
           </div>
         )}
 
-        {/* Confirmation Popup */}
+        {/* Confirmation Popups */}
         {confirmStudent && (
           <ConfirmationPopup
             title="Confirm Add Student"

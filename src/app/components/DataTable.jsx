@@ -19,8 +19,12 @@ const DataTable = ({ data, searchQuery, onRemove, entityType }) => {
         {data
           .filter(
             (item) =>
-              item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              item.student_name
+                .toLowerCase()
+                .includes(searchQuery.toLowerCase()) ||
+              item.student_id
+                .toLowerCase()
+                .includes(searchQuery.toLowerCase()) ||
               (entityType === "Student" &&
                 item.class
                   ?.toLowerCase()
@@ -31,9 +35,11 @@ const DataTable = ({ data, searchQuery, onRemove, entityType }) => {
                   .includes(searchQuery.toLowerCase()))
           )
           .map((item) => (
-            <tr key={item.id} className="border border-gray-300">
-              <td className="border border-gray-300 p-2">{item.name}</td>
-              <td className="border border-gray-300 p-2">{item.id}</td>
+            <tr key={item.student_id} className="border border-gray-300">
+              <td className="border border-gray-300 p-2">
+                {item.student_name}
+              </td>
+              <td className="border border-gray-300 p-2">{item.student_id}</td>
               {entityType === "Assistant" ? (
                 <td className="border border-gray-300 p-2">
                   {item.department}
