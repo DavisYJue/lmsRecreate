@@ -1,3 +1,4 @@
+// api/courses/enrollAssistant.js
 import { query } from "../../../../../lib/db";
 import { cookies } from "next/headers";
 
@@ -6,7 +7,6 @@ export async function POST(request) {
     const { assistant_id } = await request.json();
     const cookieStore = await cookies();
     const courseId = cookieStore.get("selectedCourseId")?.value;
-
     if (!courseId || !assistant_id) {
       return new Response(
         JSON.stringify({
@@ -17,42 +17,37 @@ export async function POST(request) {
       );
     }
 
-    // Get assistant's account_id
-    const [assistant] = await query(
+    // Lookup account_id
+    const [a] = await query(
       "SELECT account_id FROM assistant WHERE assistant_id = ?",
       [assistant_id]
     );
-
-    if (!assistant) {
+    if (!a) {
       return new Response(
-        JSON.stringify({
-          error: "NOT_FOUND",
-          message: "Assistant not found",
-        }),
+        JSON.stringify({ error: "NOT_FOUND", message: "Assistant not found" }),
         { status: 404 }
       );
     }
 
+    // Insert into otherenrollment
     await query(
       `INSERT INTO otherenrollment 
-       (account_id, course_id, enrollment_date, status)
+         (account_id, course_id, enrollment_date, status)
        VALUES (?, ?, NOW(), 'active')`,
-      [assistant.account_id, courseId]
+      [a.account_id, courseId]
     );
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Assistant enrolled successfully",
-      }),
-      { status: 200 }
+    // Return the newly enrolled assistant record
+    const [newAssistant] = await query(
+      `SELECT assistant_id, account_id, assistant_name, department
+       FROM assistant
+       WHERE assistant_id = ?`,
+      [assistant_id]
     );
-  } catch (error) {
+    return new Response(JSON.stringify(newAssistant), { status: 201 });
+  } catch (err) {
     return new Response(
-      JSON.stringify({
-        error: "DATABASE_ERROR",
-        message: error.message,
-      }),
+      JSON.stringify({ error: "DATABASE_ERROR", message: err.message }),
       { status: 500 }
     );
   }

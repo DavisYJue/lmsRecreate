@@ -16,18 +16,16 @@ const ManageStudents = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [popupSearchQuery, setPopupSearchQuery] = useState("");
-  const [confirmStudent, setConfirmStudent] = useState(null);
+  const [confirmAdd, setConfirmAdd] = useState(null);
+  const [confirmRemove, setConfirmRemove] = useState(null);
   const [availableStudents, setAvailableStudents] = useState([]);
   const [availableTeachers, setAvailableTeachers] = useState([]);
   const [availableAssistants, setAvailableAssistants] = useState([]);
-  const [confirmRemoveStudent, setConfirmRemoveStudent] = useState(null);
   const [currentRole, setCurrentRole] = useState("Student");
 
-  // Fetch all enrolled entities
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch students
         const studentRes = await fetch("/api/courses/getStudentData", {
           credentials: "include",
         });
@@ -35,7 +33,6 @@ const ManageStudents = () => {
         const studentData = await studentRes.json();
         setStudents(studentData.students);
 
-        // Fetch teachers
         const teacherRes = await fetch("/api/courses/getTeacherData", {
           credentials: "include",
         });
@@ -44,7 +41,6 @@ const ManageStudents = () => {
           setTeachers(teacherData.teachers);
         }
 
-        // Fetch assistants
         const assistantRes = await fetch("/api/courses/getAssistantData", {
           credentials: "include",
         });
@@ -60,7 +56,6 @@ const ManageStudents = () => {
     fetchData();
   }, []);
 
-  // Fetch available entities for popup
   const fetchAvailableEntities = async (role) => {
     try {
       let endpoint = "";
@@ -105,15 +100,30 @@ const ManageStudents = () => {
     setIsPopupOpen(true);
   };
 
-  const confirmAddEntity = (entity) => {
-    setConfirmStudent(entity);
+  const handleAddConfirmation = (entity) => {
+    setConfirmAdd(entity);
   };
 
   const addEntity = async () => {
-    if (!confirmStudent) return;
+    if (!confirmAdd) return;
 
     try {
       let endpoint = "";
+      let requestBody;
+      switch (currentRole) {
+        case "Student":
+          requestBody = { accountId: confirmAdd.account_id };
+          break;
+        case "Teacher":
+          requestBody = { teacher_id: confirmAdd.teacher_id };
+          break;
+        case "Assistant":
+          requestBody = { assistant_id: confirmAdd.assistant_id };
+          break;
+        default:
+          throw new Error("Invalid role");
+      }
+
       switch (currentRole) {
         case "Student":
           endpoint = "/api/courses/enrollStudent";
@@ -129,59 +139,81 @@ const ManageStudents = () => {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accountId: confirmStudent.account_id,
-          [currentRole.toLowerCase() + "_id"]:
-            confirmStudent[currentRole.toLowerCase() + "_id"],
-        }),
+        body: JSON.stringify(requestBody),
         credentials: "include",
       });
 
-      if (!res.ok) throw new Error(await res.text());
-
-      // Update UI state
-      switch (currentRole) {
-        case "Student":
-          setStudents([...students, confirmStudent]);
-          setAvailableStudents(
-            availableStudents.filter(
-              (s) => s.student_id !== confirmStudent.student_id
-            )
-          );
-          break;
-        case "Teacher":
-          setTeachers([...teachers, confirmStudent]);
-          setAvailableTeachers(
-            availableTeachers.filter(
-              (t) => t.teacher_id !== confirmStudent.teacher_id
-            )
-          );
-          break;
-        case "Assistant":
-          setAssistants([...assistants, confirmStudent]);
-          setAvailableAssistants(
-            availableAssistants.filter(
-              (a) => a.assistant_id !== confirmStudent.assistant_id
-            )
-          );
-          break;
+      if (!res.ok) {
+        const errorData = await res.json();
+        if (res.status === 409) {
+          alert(`${confirmAdd.name} is already enrolled!`);
+          updateAvailableLists();
+          return;
+        }
+        throw new Error(errorData.message || `Failed to add ${currentRole}`);
       }
 
-      alert(
-        `${
-          confirmStudent[currentRole.toLowerCase() + "_name"]
-        } added successfully!`
-      );
+      const newEntity = await res.json();
+      updateEnrollmentLists(newEntity);
+      const displayName = newEntity[`${currentRole.toLowerCase()}_name`];
+      alert(`${displayName} added successfully!`);
     } catch (error) {
       console.error("Error adding entity:", error);
       alert(error.message);
     } finally {
-      setConfirmStudent(null);
+      setConfirmAdd(null);
       setIsPopupOpen(false);
     }
   };
 
-  const removeEntity = async (entity, role) => {
+  const updateEnrollmentLists = (newEntity) => {
+    switch (currentRole) {
+      case "Student":
+        setStudents((prev) => [...prev, newEntity]);
+        setAvailableStudents((prev) =>
+          prev.filter((s) => s.student_id !== newEntity.student_id)
+        );
+        break;
+      case "Teacher":
+        setTeachers((prev) => [...prev, newEntity]);
+        setAvailableTeachers((prev) =>
+          prev.filter((t) => t.teacher_id !== newEntity.teacher_id)
+        );
+        break;
+      case "Assistant":
+        setAssistants((prev) => [...prev, newEntity]);
+        setAvailableAssistants((prev) =>
+          prev.filter((a) => a.assistant_id !== newEntity.assistant_id)
+        );
+        break;
+    }
+  };
+
+  const updateAvailableLists = () => {
+    switch (currentRole) {
+      case "Student":
+        setAvailableStudents((prev) =>
+          prev.filter((s) => s.student_id !== confirmAdd.student_id)
+        );
+        break;
+      case "Teacher":
+        setAvailableTeachers((prev) =>
+          prev.filter((t) => t.teacher_id !== confirmAdd.teacher_id)
+        );
+        break;
+      case "Assistant":
+        setAvailableAssistants((prev) =>
+          prev.filter((a) => a.assistant_id !== confirmAdd.assistant_id)
+        );
+        break;
+    }
+  };
+
+  const handleRemoveConfirmation = (entity, role) => {
+    setConfirmRemove({ entity, role });
+  };
+
+  const deleteEntity = async (entity, role) => {
     try {
       const res = await fetch("/api/courses/removeEnrollment", {
         method: "DELETE",
@@ -195,7 +227,6 @@ const ManageStudents = () => {
 
       if (!res.ok) throw new Error(await res.text());
 
-      // Update UI state
       switch (role) {
         case "Student":
           setStudents(
@@ -218,6 +249,8 @@ const ManageStudents = () => {
     } catch (error) {
       console.error("Error removing entity:", error);
       alert(error.message);
+    } finally {
+      setConfirmRemove(null);
     }
   };
 
@@ -252,40 +285,36 @@ const ManageStudents = () => {
           />
         </div>
 
-        {/* Student Table */}
         <div className="mt-8">
           <h3 className="text-xl font-bold mb-4">Students</h3>
           <DataTable
             data={students}
             searchQuery={searchQuery}
-            onRemove={(item) => removeEntity(item, "Student")}
+            onRemove={(item) => handleRemoveConfirmation(item, "Student")}
             entityType="Student"
           />
         </div>
 
-        {/* Teacher Table */}
         <div className="mt-8">
           <h3 className="text-xl font-bold mb-4">Class Teachers</h3>
           <DataTable
             data={teachers}
             searchQuery={searchQuery}
-            onRemove={(item) => removeEntity(item, "Teacher")}
+            onRemove={(item) => handleRemoveConfirmation(item, "Teacher")}
             entityType="Teacher"
           />
         </div>
 
-        {/* Assistant Table */}
         <div className="mt-8">
           <h3 className="text-xl font-bold mb-4">Teaching Assistants</h3>
           <DataTable
             data={assistants}
             searchQuery={searchQuery}
-            onRemove={(item) => removeEntity(item, "Assistant")}
+            onRemove={(item) => handleRemoveConfirmation(item, "Assistant")}
             entityType="Assistant"
           />
         </div>
 
-        {/* Add Entity Popup */}
         {isPopupOpen && (
           <div className="fixed inset-0 bg-opacity-30 backdrop-blur-md flex justify-center items-center">
             <div className="bg-white p-6 rounded-md shadow-lg w-96 flex flex-col justify-center items-center">
@@ -368,7 +397,7 @@ const ManageStudents = () => {
                       </span>
                       <Button
                         text="Add"
-                        onClick={() => confirmAddEntity(entity)}
+                        onClick={() => handleAddConfirmation(entity)}
                         className="px-3 py-1 bg-emerald-200 hover:bg-green-400"
                       />
                     </li>
@@ -384,15 +413,28 @@ const ManageStudents = () => {
           </div>
         )}
 
-        {/* Confirmation Popups */}
-        {confirmStudent && (
+        {confirmAdd && (
           <ConfirmationPopup
             title={`Confirm Add ${currentRole}`}
-            message={`Add ${
-              confirmStudent[currentRole.toLowerCase() + "_name"]
-            }?`}
+            message={`Are you sure you want to add ${
+              confirmAdd[currentRole.toLowerCase() + "_name"]
+            } as a ${currentRole}?`}
             onConfirm={addEntity}
-            onCancel={() => setConfirmStudent(null)}
+            onCancel={() => setConfirmAdd(null)}
+          />
+        )}
+
+        {confirmRemove && (
+          <ConfirmationPopup
+            title={`Confirm Remove ${confirmRemove.role}`}
+            message={`Are you sure you want to remove ${
+              confirmRemove.entity[confirmRemove.role.toLowerCase() + "_name"]
+            }?`}
+            onConfirm={() => {
+              deleteEntity(confirmRemove.entity, confirmRemove.role);
+              setConfirmRemove(null);
+            }}
+            onCancel={() => setConfirmRemove(null)}
           />
         )}
       </main>

@@ -1,3 +1,4 @@
+// api/courses/enrollTeacher.js
 import { query } from "../../../../../lib/db";
 import { cookies } from "next/headers";
 
@@ -6,7 +7,6 @@ export async function POST(request) {
     const { teacher_id } = await request.json();
     const cookieStore = await cookies();
     const courseId = cookieStore.get("selectedCourseId")?.value;
-
     if (!courseId || !teacher_id) {
       return new Response(
         JSON.stringify({
@@ -17,42 +17,37 @@ export async function POST(request) {
       );
     }
 
-    // Get teacher's account_id
-    const [teacher] = await query(
+    // Lookup account_id
+    const [t] = await query(
       "SELECT account_id FROM teacher WHERE teacher_id = ?",
       [teacher_id]
     );
-
-    if (!teacher) {
+    if (!t) {
       return new Response(
-        JSON.stringify({
-          error: "NOT_FOUND",
-          message: "Teacher not found",
-        }),
+        JSON.stringify({ error: "NOT_FOUND", message: "Teacher not found" }),
         { status: 404 }
       );
     }
 
+    // Insert into otherenrollment
     await query(
       `INSERT INTO otherenrollment 
-       (account_id, course_id, enrollment_date, status)
+         (account_id, course_id, enrollment_date, status)
        VALUES (?, ?, NOW(), 'active')`,
-      [teacher.account_id, courseId]
+      [t.account_id, courseId]
     );
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Teacher enrolled successfully",
-      }),
-      { status: 200 }
+    // Return the newly enrolled teacher record
+    const [newTeacher] = await query(
+      `SELECT teacher_id, account_id, teacher_name, faculty
+       FROM teacher
+       WHERE teacher_id = ?`,
+      [teacher_id]
     );
-  } catch (error) {
+    return new Response(JSON.stringify(newTeacher), { status: 201 });
+  } catch (err) {
     return new Response(
-      JSON.stringify({
-        error: "DATABASE_ERROR",
-        message: error.message,
-      }),
+      JSON.stringify({ error: "DATABASE_ERROR", message: err.message }),
       { status: 500 }
     );
   }

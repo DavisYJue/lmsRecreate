@@ -1,59 +1,69 @@
+// api/courses/enrollStudent
 import { query } from "../../../../../lib/db";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
 export async function POST(request) {
   try {
-    const { student_id, accountId } = await request.json();
+    const { accountId } = await request.json();
     const cookieStore = await cookies();
     const courseId = cookieStore.get("selectedCourseId")?.value;
 
-    if (!courseId || !student_id || !accountId) {
-      return new Response(
-        JSON.stringify({
-          error: "MISSING_DATA",
-          message: "Required data missing",
-        }),
+    if (!courseId || !accountId) {
+      return NextResponse.json(
+        { error: "MISSING_DATA", message: "Required data missing" },
         { status: 400 }
       );
     }
 
-    // Verify student exists
-    const [student] = await query(
-      "SELECT * FROM student WHERE student_id = ?",
-      [student_id]
+    // 1. lookup student_id
+    const [stu] = await query(
+      "SELECT student_id FROM student WHERE account_id = ?",
+      [accountId]
     );
-
-    if (!student) {
-      return new Response(
-        JSON.stringify({
-          error: "NOT_FOUND",
-          message: "Student not found",
-        }),
+    if (!stu) {
+      return NextResponse.json(
+        { error: "NOT_FOUND", message: "Student account not found" },
         { status: 404 }
       );
     }
 
-    // Enroll student only
+    // 2. prevent double-enroll
+    const [existing] = await query(
+      "SELECT enrollment_id FROM enrollment WHERE student_id = ? AND course_id = ?",
+      [stu.student_id, courseId]
+    );
+    if (existing) {
+      return NextResponse.json(
+        { error: "DUPLICATE_ENROLLMENT", message: "Already enrolled" },
+        { status: 409 }
+      );
+    }
+
+    // 3. insert
     await query(
       `INSERT INTO enrollment 
-       (student_id, course_id, enrollment_date)
-       VALUES (?, ?, NOW())`,
-      [student_id, courseId]
+         (student_id, course_id, enrollment_date, status, account_id)
+       VALUES (?, ?, NOW(), 'active', ?)`,
+      [stu.student_id, courseId, accountId]
     );
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Student enrolled successfully",
-      }),
-      { status: 200 }
+    // 4. fetch the full student row you need
+    const [newStudent] = await query(
+      `SELECT 
+         student_id,
+         account_id,
+         student_name,
+         class
+       FROM student
+       WHERE student_id = ?`,
+      [stu.student_id]
     );
-  } catch (error) {
-    return new Response(
-      JSON.stringify({
-        error: "DATABASE_ERROR",
-        message: error.message,
-      }),
+
+    return NextResponse.json(newStudent, { status: 201 });
+  } catch (err) {
+    return NextResponse.json(
+      { error: "DATABASE_ERROR", message: err.message },
       { status: 500 }
     );
   }

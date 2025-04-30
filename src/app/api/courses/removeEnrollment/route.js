@@ -1,41 +1,84 @@
+import { NextResponse } from "next/server";
 import { query } from "../../../../../lib/db";
 import { cookies } from "next/headers";
 
 export async function DELETE(request) {
   try {
-    const { accountId } = await request.json();
+    const { accountId, role } = await request.json();
     const cookieStore = await cookies();
     const courseId = cookieStore.get("selectedCourseId")?.value;
 
-    if (!courseId || !accountId) {
-      return new Response(
-        JSON.stringify({
-          error: "MISSING_DATA",
-          message: "Required data missing",
-        }),
+    if (!courseId || !accountId || !role) {
+      return NextResponse.json(
+        { error: "MISSING_DATA", message: "Required data missing" },
         { status: 400 }
       );
     }
 
-    await query(
-      `DELETE FROM otherenrollment 
-       WHERE account_id = ? AND course_id = ?`,
-      [accountId, courseId]
-    );
+    let result;
+    switch (role) {
+      case "Student":
+        const [student] = await query(
+          "SELECT student_id FROM student WHERE account_id = ?",
+          [accountId]
+        );
+        if (!student) throw new Error("Student not found");
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Enrollment removed successfully",
-      }),
-      { status: 200 }
-    );
+        result = await query(
+          `DELETE FROM enrollment 
+           WHERE account_id = ? AND course_id = ?`,
+          [accountId, courseId]
+        );
+        if (result.affectedRows === 0) {
+          throw new Error("No enrollment found for this student in the course");
+        }
+        break;
+
+      case "Teacher":
+        const [teacher] = await query(
+          "SELECT teacher_id FROM teacher WHERE account_id = ?", // Correct table name 'teacher'
+          [accountId]
+        );
+        if (!teacher) throw new Error("Teacher not found");
+
+        result = await query(
+          `DELETE FROM otherenrollment 
+           WHERE account_id = ? AND course_id = ?`,
+          [accountId, courseId]
+        );
+        if (result.affectedRows === 0) {
+          throw new Error("No teacher found for this course");
+        }
+        break;
+
+      case "Assistant":
+        const [assistant] = await query(
+          "SELECT assistant_id FROM assistant WHERE account_id = ?", // Correct table name 'assistant'
+          [accountId]
+        );
+        if (!assistant) throw new Error("Assistant not found");
+
+        result = await query(
+          `DELETE FROM otherenrollment 
+           WHERE account_id = ? AND course_id = ?`,
+          [accountId, courseId]
+        );
+        if (result.affectedRows === 0) {
+          throw new Error("No assistant found for this course");
+        }
+        break;
+
+      default:
+        return NextResponse.json({ error: "INVALID_ROLE" }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `${role} removed successfully`,
+    });
   } catch (error) {
-    return new Response(
-      JSON.stringify({
-        error: "DATABASE_ERROR",
-        message: error.message,
-      }),
+    return NextResponse.json(
+      { error: "DATABASE_ERROR", message: error.message },
       { status: 500 }
     );
   }
