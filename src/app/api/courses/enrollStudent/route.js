@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 export async function POST(request) {
   try {
     const { student_id, accountId } = await request.json();
-    const cookieStore = await cookie();
+    const cookieStore = await cookies();
     const courseId = cookieStore.get("selectedCourseId")?.value;
 
     if (!courseId || !student_id || !accountId) {

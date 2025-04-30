@@ -49,7 +49,7 @@ export async function GET() {
 }
 
 export async function PUT(request) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("session");
 
   if (!sessionCookie) {
