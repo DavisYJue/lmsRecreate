@@ -49,6 +49,26 @@ const ManageMainPage = () => {
     // optional: call API to delete from database too
   };
 
+  const handleAddCourse = () => {
+    router.push("/addCourse");
+  };
+
+  const handleManageCourseStudent = () => {
+    router.push("/manageStudent");
+  };
+
+  const handleManageCourseTA = () => {
+    router.push("/manageAssistance");
+  };
+
+  const handleManageCourseMaterial = () => {
+    router.push("/manageMaterial");
+  };
+
+  const handleManageCourseAssignment = () => {
+    router.push("/manageAssignment");
+  };
+
   const handleEditCourse = async (courseData) => {
     try {
       const response = await fetch("/api/courses/setSelectedManage", {
@@ -97,12 +117,11 @@ const ManageMainPage = () => {
         </h2>
 
         <div className="mb-4">
-          <Link href="/addCourse">
-            <Button
-              text="Add New Course"
-              className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
-            />
-          </Link>
+          <Button
+            onClick={() => handleAddCourse()}
+            text="Add New Course"
+            className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
+          />
         </div>
 
         <ul className="divide-y">
@@ -151,35 +170,31 @@ const ManageMainPage = () => {
             <p className="mb-4">What do you want to manage?</p>
             <div className="flex flex-col gap-4">
               <div className="flex justify-center gap-4">
-                <Link href={`/manageStudent`}>
-                  <Button
-                    text="Manage Course's Students"
-                    className="w-50 h-20 px-4 py-2 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
-                  />
-                </Link>
+                <Button
+                  onClick={() => handleManageCourseStudent()}
+                  text="Manage Course's Students"
+                  className="w-50 h-20 px-4 py-2 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
+                />
 
-                <Link href={`/manageAssistance`}>
-                  <Button
-                    text="Manage Teaching Assistants"
-                    className="w-50 h-20 px-4 py-2 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
-                  />
-                </Link>
+                <Button
+                  onClick={() => handleManageCourseTA()}
+                  text="Manage Teaching Assistants"
+                  className="w-50 h-20 px-4 py-2 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
+                />
               </div>
 
               <div className="flex justify-center gap-4">
-                <Link href={`/manageMaterial`}>
-                  <Button
-                    text="Manage Teaching Material"
-                    className="w-50 h-20 px-4 py-2 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
-                  />
-                </Link>
+                <Button
+                  onClick={() => handleManageCourseMaterial()}
+                  text="Manage Teaching Material"
+                  className="w-50 h-20 px-4 py-2 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
+                />
 
-                <Link href={`/manageAssignment`}>
-                  <Button
-                    text="Manage Course's Assignments"
-                    className="w-50 h-20 px-4 py-2 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
-                  />
-                </Link>
+                <Button
+                  onClick={() => handleManageCourseAssignment()}
+                  text="Manage Course's Assignments"
+                  className="w-50 h-20 px-4 py-2 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
+                />
               </div>
             </div>
 

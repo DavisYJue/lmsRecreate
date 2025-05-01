@@ -271,17 +271,17 @@ const ManageStudents = () => {
           <Button
             text="Add Student"
             onClick={() => openPopup("Student")}
-            className="px-4 py-2 text-slate-950 bg-blue-300 rounded-lg hover:bg-indigo-400 transition"
+            className="px-4 py-2 text-slate-950 bg-blue-300 hover:bg-indigo-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-indigo-950 active:text-white active:border-indigo-400"
           />
           <Button
             text="Add Teacher"
             onClick={() => openPopup("Teacher")}
-            className="px-4 py-2 text-slate-950 bg-purple-300 rounded-lg hover:bg-purple-400 transition"
+            className="px-4 py-2 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
           />
           <Button
             text="Add Assistant"
             onClick={() => openPopup("Assistant")}
-            className="px-4 py-2 text-slate-950 bg-green-300 rounded-lg hover:bg-green-400 transition"
+            className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
           />
         </div>
 
@@ -443,7 +443,7 @@ const ManageStudents = () => {
         <Button
           text="Back"
           onClick={() => router.push("/manageMainPage")}
-          className="mb-4 px-4 py-2 bg-gray-500 text-white hover:bg-gray-600"
+          className="mb-4 px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 font-bold border-2 border-slate-900 active:bg-slate-900 active:border-stone-50 delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100"
         />
       </div>
 
