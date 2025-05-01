@@ -44,8 +44,11 @@ const DataTable = ({ data, searchQuery, onRemove, entityType }) => {
               extra.includes(searchTerm)
             );
           })
-          .map((item) => (
-            <tr key={item[fields.id]} className="border border-gray-300">
+          .map((item, index) => (
+            <tr
+              key={item[fields.id] || index}
+              className="border border-gray-300"
+            >
               <td className="border border-gray-300 p-2">
                 {item[fields.name]}
               </td>

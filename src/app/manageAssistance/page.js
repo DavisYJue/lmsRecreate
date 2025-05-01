@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
@@ -10,79 +10,117 @@ import SearchInput from "../components/SearchInput";
 
 const ManageAssistance = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const courseId = searchParams.get("id");
-
   const [assistants, setAssistants] = useState([]);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(""); // Search for assistance table
-  const [popupSearchQuery, setPopupSearchQuery] = useState(""); // Search for add assistance popup
+  const [searchQuery, setSearchQuery] = useState("");
+  const [popupSearchQuery, setPopupSearchQuery] = useState("");
   const [confirmAssistant, setConfirmAssistant] = useState(null);
-  const [availableAssistants, setAvailableAssistants] = useState([
-    { id: 1, name: "Emily Davis", assistantId: "A101", department: "Math" },
-    {
-      id: 2,
-      name: "Michael Scott",
-      assistantId: "A102",
-      department: "Physics",
-    },
-  ]);
+  const [availableAssistants, setAvailableAssistants] = useState([]);
+  const [confirmRemoveAssistant, setConfirmRemoveAssistant] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [assistantsRes, availableRes] = await Promise.all([
+        fetch("/api/courses/assistants"),
+        fetch("/api/courses/availableAssistants"),
+      ]);
+
+      // Handle responses separately
+      if (!assistantsRes.ok) {
+        throw new Error(`Assistants fetch failed: ${assistantsRes.statusText}`);
+      }
+      if (!availableRes.ok) {
+        throw new Error(
+          `Available assistants fetch failed: ${availableRes.statusText}`
+        );
+      }
+
+      const assistantsData = await assistantsRes.json();
+      const availableData = await availableRes.json();
+
+      setAssistants(
+        assistantsData.map((a) => ({
+          id: a.assistant_id,
+          name: a.assistant_name,
+          assistantId: a.assistant_id,
+          department: a.department,
+        }))
+      );
+
+      setAvailableAssistants(
+        availableData.map((a) => ({
+          id: a.assistant_id,
+          name: a.assistant_name,
+          assistantId: a.assistant_id,
+          department: a.department,
+        }))
+      );
+    } catch (err) {
+      setError(err.message);
+      console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (courseId) {
-      const fetchAssistantsData = async () => {
-        // Simulated data (Replace with API call)
-        const assistantsData = [
-          {
-            id: 3,
-            name: "Sarah Lee",
-            assistantId: "A103",
-            email: "sarah@example.com",
-            department: "Math",
-          },
-          {
-            id: 4,
-            name: "David Kim",
-            assistantId: "A104",
-            email: "david@example.com",
-            department: "Physics",
-          },
-        ];
-        setAssistants(assistantsData);
-      };
-      fetchAssistantsData();
-    }
-  }, [courseId]);
+    fetchData();
+  }, []);
 
   const confirmAddAssistant = (assistant) => {
     setConfirmAssistant(assistant);
   };
 
-  const addAssistant = () => {
-    if (confirmAssistant) {
-      setAssistants([...assistants, confirmAssistant]);
-      setAvailableAssistants(
-        availableAssistants.filter((a) => a.id !== confirmAssistant.id)
-      );
+  const addAssistant = async () => {
+    if (!confirmAssistant) return;
+
+    try {
+      const response = await fetch("/api/courses/teachingAssistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assistantId: confirmAssistant.assistantId }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add assistant");
+      }
+
+      await fetchData();
       setConfirmAssistant(null);
       setIsPopupOpen(false);
+    } catch (err) {
+      setError(err.message);
+      console.error("Add assistant error:", err);
     }
   };
-
-  const [confirmRemoveAssistant, setConfirmRemoveAssistant] = useState(null);
 
   const confirmRemove = (assistant) => {
     setConfirmRemoveAssistant(assistant);
   };
 
-  const removeAssistantConfirmed = () => {
-    if (confirmRemoveAssistant) {
-      setAssistants(
-        assistants.filter(
-          (assistant) => assistant.id !== confirmRemoveAssistant.id
-        )
+  const removeAssistantConfirmed = async () => {
+    if (!confirmRemoveAssistant) return;
+
+    try {
+      const response = await fetch(
+        `/api/courses/teachingAssistant?assistantId=${confirmRemoveAssistant.assistantId}`,
+        { method: "DELETE" }
       );
+
+      if (!response.ok) {
+        throw new Error("Failed to remove assistant");
+      }
+
+      await fetchData();
       setConfirmRemoveAssistant(null);
+    } catch (err) {
+      setError(err.message);
+      console.error("Remove assistant error:", err);
     }
   };
 
@@ -97,24 +135,36 @@ const ManageAssistance = () => {
       <main className="max-w-4xl w-full mx-auto mt-6 mb-6 p-6 bg-white shadow-lg rounded-lg flex-1">
         <h2 className="text-2xl font-bold mb-4 text-slate-900">Assistants</h2>
 
-        <SearchInput
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search assistants by name, ID, or department"
-        />
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+            Error: {error}
+          </div>
+        )}
 
-        <Button
-          text="Add Assistant"
-          onClick={() => setIsPopupOpen(true)}
-          className="mb-4 px-4 py-2 text-slate-950 bg-blue-300 hover:bg-indigo-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-indigo-950 active:text-white active:border-indigo-400"
-        />
+        {loading ? (
+          <div className="text-center py-4">Loading assistants...</div>
+        ) : (
+          <>
+            <SearchInput
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search assistants by name, ID, or department"
+            />
 
-        <DataTable
-          data={assistants}
-          searchQuery={searchQuery}
-          onRemove={confirmRemove}
-          entityType="Assistant"
-        />
+            <Button
+              text="Add Assistant"
+              onClick={() => setIsPopupOpen(true)}
+              className="mb-4 px-4 py-2 text-slate-950 bg-blue-300 hover:bg-indigo-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-indigo-950 active:text-white active:border-indigo-400"
+            />
+
+            <DataTable
+              data={assistants}
+              searchQuery={searchQuery}
+              onRemove={confirmRemove}
+              entityType="Assistant"
+            />
+          </>
+        )}
 
         {isPopupOpen && (
           <div className="fixed inset-0 bg-opacity-30 backdrop-blur-md flex justify-center items-center">
