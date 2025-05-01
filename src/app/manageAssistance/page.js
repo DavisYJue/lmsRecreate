@@ -43,20 +43,19 @@ const ManageAssistance = () => {
       const assistantsData = await assistantsRes.json();
       const availableData = await availableRes.json();
 
+      // Update the mapping for assistants and availableAssistants
       setAssistants(
         assistantsData.map((a) => ({
-          id: a.assistant_id,
-          name: a.assistant_name,
-          assistantId: a.assistant_id,
+          assistant_name: a.assistant_name,
+          assistant_id: a.assistant_id,
           department: a.department,
         }))
       );
 
       setAvailableAssistants(
         availableData.map((a) => ({
-          id: a.assistant_id,
-          name: a.assistant_name,
-          assistantId: a.assistant_id,
+          assistant_name: a.assistant_name,
+          assistant_id: a.assistant_id,
           department: a.department,
         }))
       );
@@ -83,7 +82,7 @@ const ManageAssistance = () => {
       const response = await fetch("/api/courses/teachingAssistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assistantId: confirmAssistant.assistantId }),
+        body: JSON.stringify({ assistantId: confirmAssistant.assistant_id }),
       });
 
       if (!response.ok) {
@@ -91,6 +90,7 @@ const ManageAssistance = () => {
       }
 
       await fetchData();
+      alert(`${confirmAssistant.assistant_name} added successfully!`);
       setConfirmAssistant(null);
       setIsPopupOpen(false);
     } catch (err) {
@@ -108,7 +108,7 @@ const ManageAssistance = () => {
 
     try {
       const response = await fetch(
-        `/api/courses/teachingAssistant?assistantId=${confirmRemoveAssistant.assistantId}`,
+        `/api/courses/teachingAssistant?assistantId=${confirmRemoveAssistant.assistant_id}`,
         { method: "DELETE" }
       );
 
@@ -117,6 +117,7 @@ const ManageAssistance = () => {
       }
 
       await fetchData();
+      alert(`${confirmRemoveAssistant.assistant_name} removed successfully!`);
       setConfirmRemoveAssistant(null);
     } catch (err) {
       setError(err.message);
@@ -181,10 +182,10 @@ const ManageAssistance = () => {
                 {availableAssistants
                   .filter(
                     (assistant) =>
-                      assistant.name
+                      assistant.assistant_name
                         .toLowerCase()
                         .includes(popupSearchQuery.toLowerCase()) ||
-                      assistant.assistantId
+                      assistant.assistant_id
                         .toLowerCase()
                         .includes(popupSearchQuery.toLowerCase()) ||
                       assistant.department
@@ -193,11 +194,11 @@ const ManageAssistance = () => {
                   )
                   .map((assistant) => (
                     <li
-                      key={assistant.id}
+                      key={assistant.assistant_id}
                       className="p-2 border-b flex justify-between items-center"
                     >
                       <span>
-                        {assistant.name} ({assistant.assistantId}) -{" "}
+                        {assistant.assistant_name} ({assistant.assistant_id}) -{" "}
                         {assistant.department}
                       </span>
                       <Button
@@ -223,7 +224,7 @@ const ManageAssistance = () => {
         {confirmAssistant && (
           <ConfirmationPopup
             title="Confirm Add Assistant"
-            message={`Are you sure you want to add ${confirmAssistant.name} (${confirmAssistant.assistantId})?`}
+            message={`Are you sure you want to add ${confirmAssistant.assistant_name} (${confirmAssistant.assistant_id})?`}
             onConfirm={addAssistant}
             onCancel={() => setConfirmAssistant(null)}
           />
@@ -232,7 +233,7 @@ const ManageAssistance = () => {
         {confirmRemoveAssistant && (
           <ConfirmationPopup
             title="Confirm Remove Assistant"
-            message={`Are you sure you want to remove ${confirmRemoveAssistant.name} (${confirmRemoveAssistant.assistantId})?`}
+            message={`Are you sure you want to remove ${confirmRemoveAssistant.assistant_name} (${confirmRemoveAssistant.assistant_id})?`}
             onConfirm={removeAssistantConfirmed}
             onCancel={() => setConfirmRemoveAssistant(null)}
           />
