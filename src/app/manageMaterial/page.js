@@ -1,75 +1,120 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
 import ConfirmationPopup from "../components/ConfirmationPopup";
 
-const courseData = {
-  title: "Cloud Computing 101",
-  description: "An introduction to cloud computing and cloud architectures.",
-  materials: [
-    {
-      name: "Lecture 1: Introduction to Cloud Computing",
-      link: "/materials/lecture1.pdf",
-    },
-    {
-      name: "Lecture 2: Advanced Cloud Architectures",
-      link: "/materials/lecture2.pdf",
-    },
-    {
-      name: "Project Guidelines",
-      link: "/materials/project_guidelines.pdf",
-    },
-  ],
-};
-
 const ManageMaterials = () => {
   const router = useRouter();
-  const [materials, setMaterials] = useState(courseData.materials);
+  const fileInputRef = useRef(null);
+
+  const [materials, setMaterials] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
   const [materialToDelete, setMaterialToDelete] = useState(null);
   const [showUploadPopup, setShowUploadPopup] = useState(false);
   const [newMaterial, setNewMaterial] = useState({ title: "", file: null });
   const [showConfirmUpload, setShowConfirmUpload] = useState(false);
-  const fileInputRef = React.useRef(null);
+  const [courseData, setCourseData] = useState({ title: "", description: "" });
+
+  useEffect(() => {
+    fetchMaterials();
+  }, []);
+
+  const fetchMaterials = async () => {
+    try {
+      const res = await fetch("/api/courses/material", { method: "GET" });
+      const data = await res.json();
+
+      if (res.ok) {
+        // Corrected data structure access
+        setMaterials(data.materials || []);
+        setCourseData({
+          title: data.course?.course_title || "Course Materials",
+          description: data.course?.course_description || "",
+        });
+      } else {
+        console.error("Failed to fetch materials:", data.error);
+      }
+    } catch (error) {
+      console.error("Error fetching materials:", error);
+    }
+  };
 
   const handleFileChange = (e) => {
     setNewMaterial((prev) => ({ ...prev, file: e.target.files[0] }));
   };
 
   const handleUpload = () => {
-    if (newMaterial.file && newMaterial.title) {
+    if (newMaterial.file && newMaterial.title.trim() !== "") {
       setShowConfirmUpload(true);
     }
   };
 
-  const confirmUpload = () => {
-    const updatedMaterials = [
-      ...materials,
-      { name: newMaterial.title, link: URL.createObjectURL(newMaterial.file) },
-    ];
-    setMaterials(updatedMaterials);
-    setShowUploadPopup(false);
-    setShowConfirmUpload(false);
-    setNewMaterial({ title: "", file: null });
+  const confirmUpload = async () => {
+    const formData = new FormData();
+    formData.append("title", newMaterial.title);
+    formData.append("file", newMaterial.file);
+
+    try {
+      const res = await fetch("/api/courses/material", {
+        method: "POST",
+        body: formData,
+      });
+
+      const textResponse = await res.text();
+      const result = textResponse ? JSON.parse(textResponse) : {};
+
+      if (!res.ok) {
+        throw new Error(result.error || "Upload failed");
+      }
+
+      await fetchMaterials();
+      alert(`${newMaterial.title} added successfully!`);
+      setShowUploadPopup(false);
+      setShowConfirmUpload(false);
+      setNewMaterial({ title: "", file: null });
+    } catch (error) {
+      console.error("Upload error:", error.message);
+      alert(`Upload failed: ${error.message}`);
+    }
   };
 
-  const confirmDelete = (materialName) => {
-    setMaterialToDelete(materialName);
+  const confirmDelete = (materialId) => {
+    setMaterialToDelete(materialId);
     setShowPopup(true);
   };
 
-  const handleRemove = () => {
-    const updatedMaterials = materials.filter(
-      (material) => material.name !== materialToDelete
-    );
-    setMaterials(updatedMaterials);
-    setShowPopup(false);
-    setMaterialToDelete(null);
-  };
+  const handleRemove = async () => {
+    try {
+      // Find the material before deletion to get its title
+      const materialToDeleteObj = materials.find(
+        (material) => material.material_id === materialToDelete
+      );
 
+      const res = await fetch("/api/courses/material", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ material_id: materialToDelete }),
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        await fetchMaterials();
+        setShowPopup(false);
+        setMaterialToDelete(null);
+
+        if (materialToDeleteObj) {
+          alert(`${materialToDeleteObj.material_title} removed successfully!`);
+        }
+      } else {
+        console.error("Delete failed:", result.message);
+      }
+    } catch (error) {
+      console.error("Error deleting material:", error);
+    }
+  };
   return (
     <div
       className="min-h-screen flex flex-col"
@@ -100,18 +145,22 @@ const ManageMaterials = () => {
           </div>
 
           <ul className="list-none mt-6 text-slate-500">
-            {materials.map((material, index) => (
-              <li key={index} className="p-2 border-b">
+            {materials.map((material) => (
+              <li key={material.material_id} className="p-2 border-b">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-900">{material.name}</span>
+                  <span className="text-slate-900">
+                    {material.material_title}
+                  </span>
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => window.open(material.link, "_blank")}
+                      onClick={() =>
+                        window.open(`${material.material_file}`, "_blank")
+                      }
                       text="Open"
                       className="px-3 py-1 text-slate-950 bg-blue-300 hover:bg-indigo-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-indigo-950 active:text-white active:border-indigo-400"
                     />
                     <Button
-                      onClick={() => confirmDelete(material.name)}
+                      onClick={() => confirmDelete(material.material_id)}
                       text="Delete"
                       className="px-3 py-1 text-slate-950 bg-red-300 hover:bg-rose-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-pink-800 active:text-white active:border-rose-400"
                     />
