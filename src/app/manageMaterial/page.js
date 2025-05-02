@@ -22,6 +22,12 @@ const ManageMaterials = () => {
     id: null,
     title: "",
   });
+  const [showEditFilePopup, setShowEditFilePopup] = useState(false);
+  const [editFileMaterial, setEditFileMaterial] = useState({
+    id: null,
+    file: null,
+    currentFileName: "",
+  });
 
   useEffect(() => {
     fetchMaterials();
@@ -147,6 +153,50 @@ const ManageMaterials = () => {
     }
   };
 
+  const handleEditFile = async () => {
+    if (!editFileMaterial.file) {
+      alert("Please select a new file");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("material_id", editFileMaterial.id);
+    formData.append("file", editFileMaterial.file);
+
+    try {
+      const res = await fetch("/api/courses/material", {
+        method: "PATCH",
+        body: formData,
+      });
+
+      // Handle non-JSON responses
+      const contentType = res.headers.get("content-type");
+      let result;
+
+      if (contentType?.includes("application/json")) {
+        result = await res.json();
+      } else {
+        const text = await res.text();
+        try {
+          result = JSON.parse(text);
+        } catch {
+          throw new Error(text || "Unknown error occurred");
+        }
+      }
+
+      if (!res.ok) {
+        throw new Error(result.error || "File update failed");
+      }
+
+      await fetchMaterials();
+      setShowEditFilePopup(false);
+      alert("File updated successfully!");
+    } catch (error) {
+      console.error("Error updating file:", error);
+      alert(`Error updating file: ${error.message}`);
+    }
+  };
+
   return (
     <div
       className="min-h-screen flex flex-col"
@@ -200,8 +250,21 @@ const ManageMaterials = () => {
                         });
                         setShowEditPopup(true);
                       }}
-                      text="Edit"
+                      text="Edit Title"
                       className="px-3 py-1 text-slate-950 bg-yellow-200 hover:bg-amber-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-amber-700 active:text-white active:border-amber-400"
+                    />
+                    <Button
+                      onClick={() => {
+                        setEditFileMaterial({
+                          id: material.material_id,
+                          currentFileName: material.material_file
+                            .split("/")
+                            .pop(),
+                        });
+                        setShowEditFilePopup(true);
+                      }}
+                      text="Edit File"
+                      className="px-3 py-1 text-slate-950 bg-orange-200 hover:bg-orange-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-orange-700 active:text-white active:border-orange-400"
                     />
                     <Button
                       onClick={() => confirmDelete(material.material_id)}
@@ -293,6 +356,39 @@ const ManageMaterials = () => {
               <Button
                 onClick={handleEdit}
                 text="Save"
+                className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditFilePopup && (
+        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-md flex justify-center items-center">
+          <div className="bg-white p-6 rounded-md shadow-lg w-96 border-3">
+            <h3 className="text-xl font-bold mb-4">Update Material File</h3>
+            <p className="mb-2">
+              Current file: {editFileMaterial.currentFileName}
+            </p>
+            <input
+              type="file"
+              onChange={(e) =>
+                setEditFileMaterial((prev) => ({
+                  ...prev,
+                  file: e.target.files[0],
+                }))
+              }
+              className="w-full p-2 border rounded mb-4"
+            />
+            <div className="flex justify-end">
+              <Button
+                onClick={() => setShowEditFilePopup(false)}
+                text="Cancel"
+                className="mr-2 px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 font-bold border-2 border-slate-900 active:bg-slate-900 active:border-stone-50 delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100"
+              />
+              <Button
+                onClick={handleEditFile}
+                text="Update File"
                 className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
               />
             </div>

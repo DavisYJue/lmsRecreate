@@ -192,3 +192,119 @@ export async function PUT(req) {
     );
   }
 }
+
+export async function PATCH(req) {
+  const cookieStore = await cookies();
+  const session = cookieStore.get("session")?.value;
+  const accountId = session ? JSON.parse(session).account_id : null;
+
+  if (!accountId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const contentType = req.headers.get("content-type");
+    if (!contentType?.startsWith("multipart/form-data")) {
+      return NextResponse.json(
+        { error: "Invalid content type" },
+        { status: 400 }
+      );
+    }
+
+    const busboy = Busboy({ headers: { "content-type": contentType } });
+    const stream = new PassThrough();
+
+    let materialId;
+    let filePath = "";
+    let fileName = "";
+
+    // Handle Busboy events
+    busboy.on("field", (name, value) => {
+      if (name === "material_id") materialId = value;
+    });
+
+    busboy.on("file", (name, file, info) => {
+      const { filename } = info;
+      const safeName = `${Date.now()}-${filename.replace(
+        /[^a-zA-Z0-9.\-_]/g,
+        "_"
+      )}`;
+      filePath = `/materials/${safeName}`;
+      fileName = path.join(materialsDir, safeName);
+
+      const writeStream = fs.createWriteStream(fileName);
+      file.pipe(writeStream);
+    });
+
+    const processPromise = new Promise((resolve, reject) => {
+      busboy.on("finish", async () => {
+        try {
+          if (!materialId) {
+            return reject(new Error("Missing material ID"));
+          }
+
+          // Get old file path
+          const [oldFile] = await query(
+            "SELECT material_file FROM material WHERE material_id = ?",
+            [materialId]
+          );
+
+          // Delete old file if exists
+          if (oldFile?.material_file) {
+            const oldPath = path.join(
+              process.cwd(),
+              "public",
+              oldFile.material_file
+            );
+            if (fs.existsSync(oldPath)) {
+              fs.unlinkSync(oldPath);
+            }
+          }
+
+          // Update database with new file path
+          await query(
+            "UPDATE material SET material_file = ? WHERE material_id = ?",
+            [filePath, materialId]
+          );
+
+          resolve({ success: true });
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      busboy.on("error", (error) => {
+        reject(new Error(`File upload failed: ${error.message}`));
+      });
+    });
+
+    // Pipe the request body
+    const reader = req.body.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        stream.write(value);
+      }
+      stream.end();
+      stream.pipe(busboy);
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Error reading request body" },
+        { status: 500 }
+      );
+    }
+
+    // Wait for processing to complete
+    const result = await processPromise;
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("File update error:", error);
+    return NextResponse.json(
+      {
+        error: error.message || "Internal server error",
+      },
+      { status: 500 }
+    );
+  }
+}
