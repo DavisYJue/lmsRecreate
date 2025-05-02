@@ -77,21 +77,6 @@ const ManageAssignments = () => {
     });
   };
 
-  const handleFileUpload = (assignmentIndex, subIndex, files) => {
-    setAssignments((prevAssignments) => {
-      const newAssignments = [...prevAssignments];
-      const updatedFiles = [
-        ...newAssignments[assignmentIndex].submissions[subIndex].files,
-        ...files.map((file) => file.name),
-      ];
-      newAssignments[assignmentIndex].submissions[subIndex].files =
-        updatedFiles;
-      newAssignments[assignmentIndex].submissions[subIndex].submissionTime =
-        new Date();
-      return newAssignments;
-    });
-  };
-
   return (
     <div
       className="min-h-screen flex flex-col"
@@ -106,13 +91,22 @@ const ManageAssignments = () => {
           Student Submissions
         </h2>
 
-        {/* Add Assignment Button */}
-        <div className="mt-6 flex justify-end">
-          <Button
-            onClick={() => router.push("/addAssignment")}
-            text="Add Assignment"
-            className="px-4 py-2 text-slate-950 bg-blue-300 hover:bg-indigo-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-indigo-950 active:text-white active:border-indigo-400"
-          />
+        <div className="flex flex-row justify-end gap-5">
+          <div className="mt-6">
+            <Button
+              onClick={() => router.push("/editAssignment")}
+              text="Edit Assignment"
+              className="px-4 py-2 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
+            />
+          </div>
+
+          <div className="mt-6">
+            <Button
+              onClick={() => router.push("/addAssignment")}
+              text="Add Assignment"
+              className="px-4 py-2 text-slate-950 bg-blue-300 hover:bg-indigo-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-indigo-950 active:text-white active:border-indigo-400"
+            />
+          </div>
         </div>
 
         <div className="mt-6 space-y-6">
