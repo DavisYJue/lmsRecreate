@@ -17,6 +17,11 @@ const ManageMaterials = () => {
   const [newMaterial, setNewMaterial] = useState({ title: "", file: null });
   const [showConfirmUpload, setShowConfirmUpload] = useState(false);
   const [courseData, setCourseData] = useState({ title: "", description: "" });
+  const [showEditPopup, setShowEditPopup] = useState(false);
+  const [editMaterial, setEditMaterial] = useState({
+    id: null,
+    title: "",
+  });
 
   useEffect(() => {
     fetchMaterials();
@@ -115,6 +120,33 @@ const ManageMaterials = () => {
       console.error("Error deleting material:", error);
     }
   };
+
+  const handleEdit = async () => {
+    try {
+      const res = await fetch("/api/courses/material", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          material_id: editMaterial.id,
+          new_title: editMaterial.title,
+        }),
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        await fetchMaterials();
+        setShowEditPopup(false);
+        alert("Title updated successfully!");
+      } else {
+        console.error("Update failed:", result.message);
+        alert("Failed to update title");
+      }
+    } catch (error) {
+      console.error("Error updating material:", error);
+      alert("Error updating title");
+    }
+  };
+
   return (
     <div
       className="min-h-screen flex flex-col"
@@ -151,6 +183,7 @@ const ManageMaterials = () => {
                   <span className="text-slate-900">
                     {material.material_title}
                   </span>
+
                   <div className="flex gap-2">
                     <Button
                       onClick={() =>
@@ -158,6 +191,17 @@ const ManageMaterials = () => {
                       }
                       text="Open"
                       className="px-3 py-1 text-slate-950 bg-blue-300 hover:bg-indigo-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-indigo-950 active:text-white active:border-indigo-400"
+                    />
+                    <Button
+                      onClick={() => {
+                        setEditMaterial({
+                          id: material.material_id,
+                          title: material.material_title,
+                        });
+                        setShowEditPopup(true);
+                      }}
+                      text="Edit"
+                      className="px-3 py-1 text-slate-950 bg-yellow-200 hover:bg-amber-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-amber-700 active:text-white active:border-amber-400"
                     />
                     <Button
                       onClick={() => confirmDelete(material.material_id)}
@@ -217,6 +261,38 @@ const ManageMaterials = () => {
               <Button
                 onClick={handleUpload}
                 text="Upload"
+                className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditPopup && (
+        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-md flex justify-center items-center">
+          <div className="bg-white p-6 rounded-md shadow-lg w-96 border-3">
+            <h3 className="text-xl font-bold mb-4">Edit Material Title</h3>
+            <input
+              type="text"
+              placeholder="Enter new title"
+              value={editMaterial.title}
+              onChange={(e) =>
+                setEditMaterial((prev) => ({
+                  ...prev,
+                  title: e.target.value,
+                }))
+              }
+              className="w-full p-2 border rounded mb-4"
+            />
+            <div className="flex justify-end">
+              <Button
+                onClick={() => setShowEditPopup(false)}
+                text="Cancel"
+                className="mr-2 px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 font-bold border-2 border-slate-900 active:bg-slate-900 active:border-stone-50 delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100"
+              />
+              <Button
+                onClick={handleEdit}
+                text="Save"
                 className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
               />
             </div>

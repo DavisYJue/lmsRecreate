@@ -171,16 +171,24 @@ export async function DELETE(req) {
 export async function PUT(req) {
   const { material_id, new_title } = await req.json();
 
-  if (!material_id || !new_title) {
+  if (!material_id || !new_title?.trim()) {
     return NextResponse.json(
       { error: "Missing required data." },
       { status: 400 }
     );
   }
 
-  await query("UPDATE material SET material_title = ? WHERE material_id = ?", [
-    new_title,
-    material_id,
-  ]);
-  return NextResponse.json({ success: true });
+  try {
+    await query(
+      "UPDATE material SET material_title = ? WHERE material_id = ?",
+      [new_title.trim(), material_id]
+    );
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Update error:", error);
+    return NextResponse.json(
+      { error: "Database update failed" },
+      { status: 500 }
+    );
+  }
 }
