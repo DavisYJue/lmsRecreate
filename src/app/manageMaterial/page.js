@@ -28,6 +28,8 @@ const ManageMaterials = () => {
     file: null,
     currentFileName: "",
   });
+  const [showConfirmEditTitle, setShowConfirmEditTitle] = useState(false);
+  const [showConfirmEditFile, setShowConfirmEditFile] = useState(false);
 
   useEffect(() => {
     fetchMaterials();
@@ -141,7 +143,6 @@ const ManageMaterials = () => {
       const result = await res.json();
       if (res.ok) {
         await fetchMaterials();
-        setShowEditPopup(false);
         alert("Title updated successfully!");
       } else {
         console.error("Update failed:", result.message);
@@ -150,6 +151,10 @@ const ManageMaterials = () => {
     } catch (error) {
       console.error("Error updating material:", error);
       alert("Error updating title");
+    } finally {
+      // Always close both popups regardless of success/failure
+      setShowEditPopup(false);
+      setShowConfirmEditTitle(false);
     }
   };
 
@@ -189,11 +194,18 @@ const ManageMaterials = () => {
       }
 
       await fetchMaterials();
-      setShowEditFilePopup(false);
       alert("File updated successfully!");
+
+      // Close both popups on success
+      setShowEditFilePopup(false);
+      setShowConfirmEditFile(false);
     } catch (error) {
       console.error("Error updating file:", error);
       alert(`Error updating file: ${error.message}`);
+    } finally {
+      // Ensure popups are closed even if error occurs
+      setShowEditFilePopup(false);
+      setShowConfirmEditFile(false);
     }
   };
 
@@ -354,7 +366,7 @@ const ManageMaterials = () => {
                 className="mr-2 px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 font-bold border-2 border-slate-900 active:bg-slate-900 active:border-stone-50 delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100"
               />
               <Button
-                onClick={handleEdit}
+                onClick={() => setShowConfirmEditTitle(true)}
                 text="Save"
                 className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
               />
@@ -387,7 +399,7 @@ const ManageMaterials = () => {
                 className="mr-2 px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 font-bold border-2 border-slate-900 active:bg-slate-900 active:border-stone-50 delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100"
               />
               <Button
-                onClick={handleEditFile}
+                onClick={() => setShowConfirmEditFile(true)}
                 text="Update File"
                 className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
               />
@@ -402,6 +414,24 @@ const ManageMaterials = () => {
           message="Are you sure you want to upload this material?"
           onConfirm={confirmUpload}
           onCancel={() => setShowConfirmUpload(false)}
+        />
+      )}
+
+      {showConfirmEditTitle && (
+        <ConfirmationPopup
+          title="Confirm Title Update"
+          message="Are you sure you want to update this title?"
+          onConfirm={handleEdit}
+          onCancel={() => setShowConfirmEditTitle(false)}
+        />
+      )}
+
+      {showConfirmEditFile && (
+        <ConfirmationPopup
+          title="Confirm File Update"
+          message="Are you sure you want to replace this file?"
+          onConfirm={handleEditFile}
+          onCancel={() => setShowConfirmEditFile(false)}
         />
       )}
 
