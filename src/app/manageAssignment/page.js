@@ -199,7 +199,7 @@ const ManageAssignments = () => {
 
       <div className="mt-auto p-4 flex justify-center w-full">
         <Button
-          onClick={() => router.push("/lmsMainPage")}
+          onClick={() => router.push("/manageMainPage")}
           text="Back"
           className="px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 font-bold border-2 border-slate-900 active:bg-slate-900 active:border-stone-50 delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100"
         />
