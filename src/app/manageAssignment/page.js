@@ -18,24 +18,18 @@ const ManageAssignments = () => {
         const data = await res.json();
 
         const parsedData = data.map((assignment) => ({
-          // If your API already returns a `title`, use it; otherwise rename:
           title: assignment.title,
-
-          // Turn each flat submission into the UI shape
           submissions: assignment.submissions.map((sub) => ({
             submissionId: sub.submission_id,
-            student: sub.submitter, // rename
+            student: sub.submitter,
+            // split comma-separated paths into array
             files: sub.file_path
-              ? Array.isArray(sub.file_path)
-                ? sub.file_path
-                : [sub.file_path]
-              : [], // wrap single path
-            grade: sub.grade ?? "", // default to empty string
-            confirmed: false, // or derive from your data
+              ? sub.file_path.split(",").map((p) => p.trim())
+              : [],
+            grade: sub.grade ?? "",
+            confirmed: false,
             submissionTime: new Date(sub.submission_time),
           })),
-
-          // If your API doesn’t return notSubmitted, at least give an empty array
           notSubmitted: assignment.notSubmitted || [],
         }));
 
@@ -48,31 +42,31 @@ const ManageAssignments = () => {
     fetchAssignments();
   }, []);
 
-  const handleGradeChange = (assignmentIndex, subIndex, grade) => {
+  const handleGradeChange = (ai, si, grade) => {
     if (grade >= 0 && grade <= 100) {
       setAssignments((prev) => {
-        const updated = [...prev];
-        updated[assignmentIndex].submissions[subIndex].grade = grade;
-        return updated;
+        const next = [...prev];
+        next[ai].submissions[si].grade = grade;
+        return next;
       });
     }
   };
 
-  const confirmGrade = (assignmentIndex, subIndex) => {
+  const confirmGrade = (ai, si) => {
     setAssignments((prev) => {
-      const updated = [...prev];
-      if (updated[assignmentIndex].submissions[subIndex].grade !== "") {
-        updated[assignmentIndex].submissions[subIndex].confirmed = true;
+      const next = [...prev];
+      if (next[ai].submissions[si].grade !== "") {
+        next[ai].submissions[si].confirmed = true;
       }
-      return updated;
+      return next;
     });
   };
 
-  const regrade = (assignmentIndex, subIndex) => {
+  const regrade = (ai, si) => {
     setAssignments((prev) => {
-      const updated = [...prev];
-      updated[assignmentIndex].submissions[subIndex].confirmed = false;
-      return updated;
+      const next = [...prev];
+      next[ai].submissions[si].confirmed = false;
+      return next;
     });
   };
 
@@ -90,97 +84,99 @@ const ManageAssignments = () => {
           Student Submissions
         </h2>
 
-        <div className="flex flex-row justify-end gap-5">
-          <div className="mt-6">
-            <Button
-              onClick={() => router.push("/editAssignment")}
-              text="Edit Assignment"
-              className="px-4 py-2 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
-            />
-          </div>
-
-          <div className="mt-6">
-            <Button
-              onClick={() => router.push("/addAssignment")}
-              text="Add Assignment"
-              className="px-4 py-2 text-slate-950 bg-blue-300 hover:bg-indigo-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-indigo-950 active:text-white active:border-indigo-400"
-            />
-          </div>
+        <div className="flex justify-end gap-5 mt-6">
+          <Button
+            onClick={() => router.push("/editAssignment")}
+            text="Edit Assignment"
+            className="px-4 py-2 bg-fuchsia-200 hover:bg-purple-400 text-slate-950"
+          />
+          <Button
+            onClick={() => router.push("/addAssignment")}
+            text="Add Assignment"
+            className="px-4 py-2 bg-blue-300 hover:bg-indigo-400 text-slate-950"
+          />
         </div>
 
         <div className="mt-6 space-y-6">
-          {assignments.map((assignment, index) => (
-            <div key={index} className="p-4 border rounded-lg bg-gray-50">
-              <h3 className="text-xl font-semibold text-slate-900 mb-3">
-                {assignment.title}
-              </h3>
+          {assignments.map((assignment, ai) => (
+            <div key={ai} className="p-4 border rounded-lg bg-gray-50">
+              <h3 className="text-xl font-semibold mb-3">{assignment.title}</h3>
+
               {assignment.submissions.length > 0 ? (
                 <ul className="space-y-3">
-                  {assignment.submissions.map((submission, subIndex) => (
+                  {assignment.submissions.map((sub, si) => (
                     <li
-                      key={subIndex}
+                      key={si}
                       className="flex flex-wrap items-center justify-between p-3 bg-white shadow rounded-lg"
                     >
                       <div className="w-1/4">
-                        <p className="text-gray-700 font-medium">
-                          {submission.student}
+                        <p className="font-medium text-gray-700">
+                          {sub.student}
                         </p>
                         <p className="text-sm text-gray-500">
-                          Time: {submission.submissionTime.toLocaleString()}
+                          Time: {sub.submissionTime.toLocaleString()}
                         </p>
                       </div>
+
                       <div className="w-1/4 text-center">
-                        {submission.files.map((file, fileIndex) => (
-                          <div key={fileIndex}>
-                            <a
-                              href={`${file}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-500 hover:underline"
-                            >
-                              {file}
-                            </a>
-                          </div>
-                        ))}
+                        {sub.files.length > 0 ? (
+                          sub.files.map((file, idx) => (
+                            <div key={idx}>
+                              <a
+                                href={file}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-500 hover:underline"
+                              >
+                                {file.split("/").pop()}
+                              </a>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-gray-500">No files</p>
+                        )}
                       </div>
+
                       <input
                         type="number"
                         min="0"
                         max="100"
                         placeholder="Grade"
-                        value={submission.grade}
+                        value={sub.grade}
                         onChange={(e) =>
-                          handleGradeChange(index, subIndex, e.target.value)
+                          handleGradeChange(ai, si, e.target.value)
                         }
-                        className="p-1 border border-gray-400 rounded w-1/6 text-center"
-                        disabled={submission.confirmed}
+                        className="w-1/6 p-1 border rounded text-center"
+                        disabled={sub.confirmed}
                       />
-                      {!submission.confirmed ? (
+
+                      {!sub.confirmed ? (
                         <Button
-                          onClick={() => confirmGrade(index, subIndex)}
+                          onClick={() => confirmGrade(ai, si)}
                           text="Confirm"
-                          className="px-3 py-1 w-1/6 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
-                          disabled={submission.grade === ""}
+                          className="px-3 py-1 bg-emerald-200 hover:bg-green-400 text-slate-950"
+                          disabled={sub.grade === ""}
                         />
                       ) : (
                         <Button
-                          onClick={() => regrade(index, subIndex)}
+                          onClick={() => regrade(ai, si)}
                           text="Re-grade"
-                          className="px-3 py-1 w-1/6 text-slate-950 bg-red-300 hover:bg-rose-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-pink-800 active:text-white active:border-rose-400"
+                          className="px-3 py-1 bg-red-300 hover:bg-rose-400 text-slate-950"
                         />
                       )}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-gray-500 mt-2">No submissions yet.</p>
+                <p className="text-gray-500">No submissions yet.</p>
               )}
+
               {assignment.notSubmitted.length > 0 && (
                 <div className="mt-3 text-gray-700">
                   <h4 className="font-semibold">Not Submitted:</h4>
                   <ul className="list-disc pl-5">
-                    {assignment.notSubmitted.map((student, subIndex) => (
-                      <li key={subIndex}>{student}</li>
+                    {assignment.notSubmitted.map((name, idx) => (
+                      <li key={idx}>{name}</li>
                     ))}
                   </ul>
                 </div>
@@ -190,11 +186,11 @@ const ManageAssignments = () => {
         </div>
       </main>
 
-      <div className="mt-auto p-4 flex justify-center w-full">
+      <div className="mt-auto p-4 flex justify-center">
         <Button
           onClick={() => router.push("/manageMainPage")}
           text="Back"
-          className="px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 font-bold border-2 border-slate-900 active:bg-slate-900 active:border-stone-50 delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100"
+          className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white"
         />
       </div>
 
