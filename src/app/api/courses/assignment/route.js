@@ -23,35 +23,39 @@ export async function GET() {
       assignments.map(async (a) => {
         const studentSubs = await query(
           `SELECT
-             s.submission_id,
-             acc.username       AS submitter,
-             s.file_path,
-             s.grade,
-             s.grade IS NOT NULL AS confirmed,
-             s.submission_time,
-             s.graded_by,
-             'student'          AS role
-           FROM submission s
-           JOIN student st ON s.student_id = st.student_id
-           JOIN account acc ON st.account_id = acc.account_id
-           WHERE s.assignment_id = ?`,
+               s.submission_id,
+               acc.username       AS submitter,
+               s.file_path,
+               s.grade,
+               s.grade IS NOT NULL AS confirmed,
+               s.submission_time,
+               s.graded_by,
+               'student'          AS role
+             FROM submission s
+             JOIN student st ON s.student_id = st.student_id
+             JOIN account acc ON st.account_id = acc.account_id
+             WHERE s.assignment_id = ?`,
           [a.assignment_id]
         );
+
         const otherSubs = await query(
           `SELECT
-             s.submission_id,
-             acc.username       AS submitter,
-             s.file_path,
-             NULL               AS grade,
-             FALSE              AS confirmed,
-             s.submission_time,
-             NULL               AS graded_by,
-             'other'            AS role
-           FROM othersubmission s
-           JOIN account acc ON s.account_id = acc.account_id
-           WHERE s.assignment_id = ?`,
+               s.submission_id,
+               acc.username       AS submitter,
+               s.file_path,
+               s.grade,
+               s.grade IS NOT NULL AS confirmed,
+               s.submission_time,
+               s.graded_by,
+               'other'            AS role
+             FROM othersubmission s
+             JOIN account acc ON s.account_id = acc.account_id
+             WHERE s.assignment_id = ?`,
           [a.assignment_id]
         );
+
+        // Optional: fetch students who haven't submitted yet (e.g., from enrollment)
+        const notSubmitted = []; // Fill this if needed
 
         return {
           assignment_id: a.assignment_id,
@@ -67,7 +71,7 @@ export async function GET() {
             graded_by: s.graded_by,
             role: s.role,
           })),
-          notSubmitted: [], // or fetch it similarly
+          notSubmitted,
         };
       })
     );
@@ -75,7 +79,7 @@ export async function GET() {
     return Response.json(data);
   } catch (err) {
     console.error("GET error:", err);
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    return Response.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -87,13 +91,18 @@ export async function PUT(req) {
     const session = cookieStore.get("session")?.value;
     const graderId = session ? JSON.parse(session).account_id : null;
 
-    if (!submission_id || role !== "student" || graderId == null) {
+    if (!submission_id || graderId == null) {
       return Response.json({ error: "Invalid request" }, { status: 400 });
     }
 
+    // Decide which table to use based on the role
+    const table = role === "student" ? "submission" : "othersubmission";
+    const auditTable =
+      role === "student" ? "grade_audit" : "grade_audit_othersubmission";
+
     // fetch old grade
     const [existing] = await query(
-      `SELECT grade FROM submission WHERE submission_id = ?`,
+      `SELECT grade FROM ${table} WHERE submission_id = ?`,
       [submission_id]
     );
     if (!existing) {
@@ -101,26 +110,26 @@ export async function PUT(req) {
     }
     const old_grade = existing.grade;
 
-    // decide gradeToSet: null if new_grade is null or empty
-    const gradeToSet = new_grade == null || new_grade === "" ? null : new_grade;
+    // Handle grade: if empty string, set it to NULL, otherwise use the provided grade
+    const gradeToSet = new_grade === "" ? null : new_grade;
 
-    // update submission
+    // Update the grade in the corresponding table (either submission or othersubmission)
     await query(
-      `UPDATE submission
+      `UPDATE ${table}
            SET grade = ?, graded_by = ?
          WHERE submission_id = ?`,
       [gradeToSet, graderId, submission_id]
     );
 
-    // audit log
+    // Insert into the appropriate grade_audit table
     await query(
-      `INSERT INTO grade_audit
+      `INSERT INTO ${auditTable}
            (submission_id, old_grade, new_grade, changed_by, change_date)
          VALUES (?, ?, ?, ?, NOW())`,
       [submission_id, old_grade, gradeToSet, graderId]
     );
 
-    return Response.json({ message: "Updated" });
+    return Response.json({ message: "Grade updated and audit logged." });
   } catch (err) {
     console.error("PUT error:", err);
     return Response.json({ error: "Internal server error." }, { status: 500 });

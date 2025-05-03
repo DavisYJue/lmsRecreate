@@ -27,8 +27,9 @@ const ManageAssignments = () => {
               ? s.file_path.split(",").map((p) => p.trim())
               : [],
             grade: s.grade ?? "",
-            confirmed: s.confirmed, // from backend
+            confirmed: s.confirmed,
             submissionTime: new Date(s.submission_time),
+            role: s.role, // ✅ FIXED: include the role here
           })),
           notSubmitted: a.notSubmitted,
         }));
@@ -71,7 +72,7 @@ const ManageAssignments = () => {
         body: JSON.stringify({
           submission_id: updatedSubmission.submissionId,
           new_grade: updatedSubmission.grade,
-          role: "student", // or "other" depending on the submission
+          role: updatedSubmission.role, // "student" or "other"
           confirmed: true, // Send the confirmed status to the backend
         }),
       });
@@ -103,7 +104,7 @@ const ManageAssignments = () => {
         body: JSON.stringify({
           submission_id: updatedSubmission.submissionId,
           new_grade: "", // Set the grade to empty (or null, depending on preference)
-          role: "student", // or "other"
+          role: updatedSubmission.role, // "student" or "other"
           confirmed: false, // Reset the confirmed status
         }),
       });
