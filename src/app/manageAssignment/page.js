@@ -17,20 +17,20 @@ const ManageAssignments = () => {
         if (!res.ok) throw new Error("Failed to fetch assignments");
         const data = await res.json();
 
-        const parsedData = data.map((assignment) => ({
-          title: assignment.title,
-          submissions: assignment.submissions.map((sub) => ({
-            submissionId: sub.submission_id,
-            student: sub.submitter,
-            // split comma-separated paths into array
-            files: sub.file_path
-              ? sub.file_path.split(",").map((p) => p.trim())
+        // inside your useEffect parser
+        const parsedData = data.map((a) => ({
+          title: a.title,
+          submissions: a.submissions.map((s) => ({
+            submissionId: s.submission_id,
+            student: s.submitter,
+            files: s.file_path
+              ? s.file_path.split(",").map((p) => p.trim())
               : [],
-            grade: sub.grade ?? "",
-            confirmed: false,
-            submissionTime: new Date(sub.submission_time),
+            grade: s.grade ?? "",
+            confirmed: s.confirmed, // from backend
+            submissionTime: new Date(s.submission_time),
           })),
-          notSubmitted: assignment.notSubmitted || [],
+          notSubmitted: a.notSubmitted,
         }));
 
         setAssignments(parsedData);
@@ -52,22 +52,70 @@ const ManageAssignments = () => {
     }
   };
 
-  const confirmGrade = (ai, si) => {
+  const confirmGrade = async (ai, si) => {
+    const updatedSubmission = assignments[ai].submissions[si];
+    if (updatedSubmission.grade === "") return;
+
     setAssignments((prev) => {
       const next = [...prev];
-      if (next[ai].submissions[si].grade !== "") {
-        next[ai].submissions[si].confirmed = true;
-      }
+      next[ai].submissions[si].confirmed = true; // Update confirmed flag locally
       return next;
     });
+
+    try {
+      const res = await fetch("/api/courses/assignment", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          submission_id: updatedSubmission.submissionId,
+          new_grade: updatedSubmission.grade,
+          role: "student", // or "other" depending on the submission
+          confirmed: true, // Send the confirmed status to the backend
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to confirm grade");
+
+      console.log("Grade confirmed", data);
+    } catch (err) {
+      console.error("Error confirming grade:", err);
+    }
   };
 
-  const regrade = (ai, si) => {
+  const regrade = async (ai, si) => {
+    const updatedSubmission = assignments[ai].submissions[si];
+    // Set the grade to null (or an empty string) for regrade
     setAssignments((prev) => {
       const next = [...prev];
-      next[ai].submissions[si].confirmed = false;
+      next[ai].submissions[si].grade = ""; // Reset to empty string
+      next[ai].submissions[si].confirmed = false; // Reset confirmed flag
       return next;
     });
+
+    try {
+      const res = await fetch("/api/courses/assignment", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          submission_id: updatedSubmission.submissionId,
+          new_grade: "", // Set the grade to empty (or null, depending on preference)
+          role: "student", // or "other"
+          confirmed: false, // Reset the confirmed status
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok)
+        throw new Error(data.error || "Failed to regrade submission");
+
+      console.log("Regrade successful", data);
+    } catch (err) {
+      console.error("Error regrading:", err);
+    }
   };
 
   return (
