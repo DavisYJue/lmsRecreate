@@ -93,6 +93,7 @@ const ManageMainPage = () => {
       });
 
       if (!response.ok) throw new Error("Failed to set course");
+      sessionStorage.setItem("selectedCourseId", courseId);
 
       // Store the selected course data in state
       setSelectedCourseData(courseData);

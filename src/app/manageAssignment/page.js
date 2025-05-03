@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -8,72 +8,71 @@ import Button from "../components/Button";
 
 const ManageAssignments = () => {
   const router = useRouter();
-  const [assignments, setAssignments] = useState([
-    {
-      title: "Assignment 1: Introduction",
-      submissions: [
-        {
-          student: "Alice Johnson",
-          files: ["alice_intro.pdf", "alice_additional.pdf"],
-          grade: "",
-          confirmed: false,
-          submissionTime: new Date("2024-05-01T14:30:00"),
-        },
-        {
-          student: "Bob Smith",
-          files: ["bob_intro.docx"],
-          grade: "",
-          confirmed: false,
-          submissionTime: new Date("2024-05-02T09:15:00"),
-        },
-      ],
-      notSubmitted: ["Eve Adams", "John Doe"],
-    },
-    {
-      title: "Assignment 2: Research Topic",
-      submissions: [
-        {
-          student: "Charlie Brown",
-          files: ["charlie_research.pdf"],
-          grade: "",
-          confirmed: false,
-          submissionTime: new Date("2024-05-03T16:45:00"),
-        },
-      ],
-      notSubmitted: ["Sarah Connor", "Mike Ross"],
-    },
-    {
-      title: "Assignment 3: Final Report",
-      submissions: [],
-      notSubmitted: ["David Miller", "Sophia Lee"],
-    },
-  ]);
+  const [assignments, setAssignments] = useState([]);
+
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        const res = await fetch("/api/courses/assignment");
+        if (!res.ok) throw new Error("Failed to fetch assignments");
+        const data = await res.json();
+
+        const parsedData = data.map((assignment) => ({
+          // If your API already returns a `title`, use it; otherwise rename:
+          title: assignment.title,
+
+          // Turn each flat submission into the UI shape
+          submissions: assignment.submissions.map((sub) => ({
+            submissionId: sub.submission_id,
+            student: sub.submitter, // rename
+            files: sub.file_path
+              ? Array.isArray(sub.file_path)
+                ? sub.file_path
+                : [sub.file_path]
+              : [], // wrap single path
+            grade: sub.grade ?? "", // default to empty string
+            confirmed: false, // or derive from your data
+            submissionTime: new Date(sub.submission_time),
+          })),
+
+          // If your API doesn’t return notSubmitted, at least give an empty array
+          notSubmitted: assignment.notSubmitted || [],
+        }));
+
+        setAssignments(parsedData);
+      } catch (err) {
+        console.error("Error fetching assignments:", err);
+      }
+    };
+
+    fetchAssignments();
+  }, []);
 
   const handleGradeChange = (assignmentIndex, subIndex, grade) => {
     if (grade >= 0 && grade <= 100) {
-      setAssignments((prevAssignments) => {
-        const newAssignments = [...prevAssignments];
-        newAssignments[assignmentIndex].submissions[subIndex].grade = grade;
-        return newAssignments;
+      setAssignments((prev) => {
+        const updated = [...prev];
+        updated[assignmentIndex].submissions[subIndex].grade = grade;
+        return updated;
       });
     }
   };
 
   const confirmGrade = (assignmentIndex, subIndex) => {
-    setAssignments((prevAssignments) => {
-      const newAssignments = [...prevAssignments];
-      if (newAssignments[assignmentIndex].submissions[subIndex].grade !== "") {
-        newAssignments[assignmentIndex].submissions[subIndex].confirmed = true;
+    setAssignments((prev) => {
+      const updated = [...prev];
+      if (updated[assignmentIndex].submissions[subIndex].grade !== "") {
+        updated[assignmentIndex].submissions[subIndex].confirmed = true;
       }
-      return newAssignments;
+      return updated;
     });
   };
 
   const regrade = (assignmentIndex, subIndex) => {
-    setAssignments((prevAssignments) => {
-      const newAssignments = [...prevAssignments];
-      newAssignments[assignmentIndex].submissions[subIndex].confirmed = false;
-      return newAssignments;
+    setAssignments((prev) => {
+      const updated = [...prev];
+      updated[assignmentIndex].submissions[subIndex].confirmed = false;
+      return updated;
     });
   };
 
@@ -134,7 +133,7 @@ const ManageAssignments = () => {
                         {submission.files.map((file, fileIndex) => (
                           <div key={fileIndex}>
                             <a
-                              href={`/submissions/${file}`}
+                              href={`${file}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-500 hover:underline"
