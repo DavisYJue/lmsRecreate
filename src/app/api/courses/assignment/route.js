@@ -91,39 +91,50 @@ export async function PUT(req) {
     const session = cookieStore.get("session")?.value;
     const graderId = session ? JSON.parse(session).account_id : null;
 
-    if (!submission_id || graderId == null) {
-      return Response.json({ error: "Invalid request" }, { status: 400 });
+    if (
+      !submission_id ||
+      new_grade === undefined ||
+      !role ||
+      graderId == null
+    ) {
+      return Response.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
-    // Decide which table to use based on the role
-    const table = role === "student" ? "submission" : "othersubmission";
-    const auditTable =
-      role === "student" ? "grade_audit" : "grade_audit_othersubmission";
+    // Whitelist tables to prevent SQL injection
+    const allowedTables = {
+      student: { table: "submission", audit: "grade_audit" },
+      other: { table: "othersubmission", audit: "grade_audit_othersubmission" },
+    };
 
-    // fetch old grade
+    const isStudent = role === "student";
+    const tableInfo = isStudent ? allowedTables.student : allowedTables.other;
+
+    // Fetch existing grade
     const [existing] = await query(
-      `SELECT grade FROM ${table} WHERE submission_id = ?`,
+      `SELECT grade FROM ${tableInfo.table} WHERE submission_id = ?`,
       [submission_id]
     );
     if (!existing) {
       return Response.json({ error: "Submission not found." }, { status: 404 });
     }
-    const old_grade = existing.grade;
 
-    // Handle grade: if empty string, set it to NULL, otherwise use the provided grade
+    const old_grade = existing.grade;
     const gradeToSet = new_grade === "" ? null : new_grade;
 
-    // Update the grade in the corresponding table (either submission or othersubmission)
+    // Update grade
     await query(
-      `UPDATE ${table}
+      `UPDATE ${tableInfo.table}
            SET grade = ?, graded_by = ?
          WHERE submission_id = ?`,
       [gradeToSet, graderId, submission_id]
     );
 
-    // Insert into the appropriate grade_audit table
+    // Insert into audit log
     await query(
-      `INSERT INTO ${auditTable}
+      `INSERT INTO ${tableInfo.audit}
            (submission_id, old_grade, new_grade, changed_by, change_date)
          VALUES (?, ?, ?, ?, NOW())`,
       [submission_id, old_grade, gradeToSet, graderId]
@@ -132,6 +143,6 @@ export async function PUT(req) {
     return Response.json({ message: "Grade updated and audit logged." });
   } catch (err) {
     console.error("PUT error:", err);
-    return Response.json({ error: "Internal server error." }, { status: 500 });
+    return Response.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
