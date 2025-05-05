@@ -4,15 +4,16 @@ import { useRouter } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
+import ConfirmationPopup from "../components/ConfirmationPopup";
 
 const EditAssignment = () => {
   const router = useRouter();
-
   const [assignmentTitle, setAssignmentTitle] = useState("");
   const [assignmentDescription, setAssignmentDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [files, setFiles] = useState([]);
   const [existingFiles, setExistingFiles] = useState([]);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   useEffect(() => {
     const fetchAssignment = async () => {
@@ -24,30 +25,35 @@ const EditAssignment = () => {
           setAssignmentDescription(data.assignment_description);
           setDueDate(data.due_date?.split("T")[0] || "");
           setExistingFiles(data.files || []);
-        } else {
-          console.error("Failed to fetch assignment details");
         }
       } catch (error) {
         console.error("Error fetching assignment:", error);
       }
     };
-
     fetchAssignment();
   }, []);
 
   const handleFileUpload = (e) => {
-    const uploadedFiles = Array.from(e.target.files);
-    // Replace previous files instead of appending
-    setFiles(uploadedFiles);
+    setFiles(Array.from(e.target.files));
   };
 
-  const handleSubmit = async () => {
+  const handleSubmitClick = () => {
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmUpdate = async () => {
+    setShowConfirmation(false);
+
     if (!assignmentTitle || !assignmentDescription || !dueDate) return;
 
     const formData = new FormData();
     formData.append("assignment_title", assignmentTitle);
     formData.append("assignment_description", assignmentDescription);
     formData.append("due_date", dueDate);
+    formData.append(
+      "keep_existing_files",
+      files.length === 0 ? "true" : "false"
+    );
 
     files.forEach((file) => {
       formData.append("files", file);
@@ -59,39 +65,29 @@ const EditAssignment = () => {
         body: formData,
       });
 
-      // Handle response safely
-      const responseText = await res.text();
-      let result = {};
-      try {
-        result = responseText ? JSON.parse(responseText) : {};
-      } catch (e) {
-        console.error("Failed to parse response:", e);
-      }
-
+      const result = await res.json();
       if (res.ok) {
         alert("Assignment updated successfully!");
         router.push("/manageAssignment");
       } else {
         alert(`Update failed: ${result.error || "Unknown error"}`);
-        // Clear files on error
-        setFiles([]);
       }
     } catch (error) {
       console.error("Network error:", error);
       alert("Failed to connect to server");
+    } finally {
       setFiles([]);
     }
+  };
+
+  const handleCancelUpdate = () => {
+    setShowConfirmation(false);
   };
 
   const isFormValid = assignmentTitle && assignmentDescription && dueDate;
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{
-        backgroundImage: "linear-gradient(to bottom, #a9c3d2, #fcf4e7)",
-      }}
-    >
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#a9c3d2] to-[#fcf4e7]">
       <Header title="Edit Assignment" />
 
       <main className="flex-grow max-w-3xl w-full mx-auto mt-6 p-6 bg-white shadow-lg rounded-lg min-w-[300px]">
@@ -112,6 +108,7 @@ const EditAssignment = () => {
               className="w-full p-2 border border-gray-300 rounded-md mt-2"
             />
           </div>
+
           <div>
             <label className="block text-gray-700 font-semibold">
               Assignment Description
@@ -124,6 +121,7 @@ const EditAssignment = () => {
               rows="4"
             />
           </div>
+
           <div>
             <label className="block text-gray-700 font-semibold">
               Due Date
@@ -143,9 +141,7 @@ const EditAssignment = () => {
 
             {existingFiles.length > 0 && (
               <div className="mt-2">
-                <p className="text-gray-700 font-semibold">
-                  Current Server Files:
-                </p>
+                <p className="text-gray-700 font-semibold">Current Files:</p>
                 <ul className="list-disc pl-5">
                   {existingFiles.map((file, index) => (
                     <li key={`existing-${index}`} className="text-gray-700">
@@ -165,21 +161,13 @@ const EditAssignment = () => {
 
             {files.length > 0 && (
               <div className="mt-2">
-                <p className="text-gray-700 font-semibold">
-                  Files to Upload (will replace current files):
-                </p>
+                <p className="text-gray-700 font-semibold">Files to Upload:</p>
                 <ul className="list-disc pl-5">
-                  {files.map((file, index) => {
-                    const fileNameParts = file.name.split(".");
-                    const extension =
-                      fileNameParts.length > 1 ? `.${fileNameParts.pop()}` : "";
-                    return (
-                      <li key={`new-${index}`} className="text-gray-700">
-                        {file.name} (will be renamed to {Date.now()}-{index + 1}
-                        {extension})
-                      </li>
-                    );
-                  })}
+                  {files.map((file, index) => (
+                    <li key={`new-${index}`} className="text-gray-700">
+                      {file.name}
+                    </li>
+                  ))}
                 </ul>
               </div>
             )}
@@ -190,14 +178,11 @@ const EditAssignment = () => {
               onChange={handleFileUpload}
               className="w-full p-2 border border-gray-300 rounded-md mt-2"
             />
-            <p className="text-sm text-gray-500 mt-1">
-              Uploaded files will be automatically renamed and replace existing
-              files
-            </p>
           </div>
+
           <div className="mt-4 flex justify-end">
             <Button
-              onClick={handleSubmit}
+              onClick={handleSubmitClick}
               text="Update Assignment"
               className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
               disabled={!isFormValid}
@@ -213,6 +198,19 @@ const EditAssignment = () => {
           className="px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 font-bold border-2 border-slate-900 active:bg-slate-900 active:border-stone-50 delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100"
         />
       </div>
+
+      {showConfirmation && (
+        <ConfirmationPopup
+          title="Confirm Update"
+          message={
+            files.length > 0
+              ? "Are you sure you want to update this assignment and replace existing files?"
+              : "Are you sure you want to update this assignment (keeping existing files)?"
+          }
+          onConfirm={handleConfirmUpdate}
+          onCancel={handleCancelUpdate}
+        />
+      )}
 
       <Footer />
     </div>

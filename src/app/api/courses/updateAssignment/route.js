@@ -1,4 +1,3 @@
-// src/app/api/courses/updateAssignment/route.js
 import { NextResponse } from "next/server";
 import { query } from "../../../../../lib/db";
 import path from "path";
@@ -6,11 +5,7 @@ import fs from "fs";
 import Busboy from "busboy";
 import { cookies } from "next/headers";
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+export const config = { api: { bodyParser: false } };
 
 const uploadDir = path.join(process.cwd(), "public/courseMaterials");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
@@ -18,13 +13,11 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 async function readStream(stream) {
   const chunks = [];
   const reader = stream.getReader();
-
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
     chunks.push(value);
   }
-
   return Buffer.concat(chunks);
 }
 
@@ -42,10 +35,7 @@ export async function POST(req) {
   const courseId = cookieStore.get("selectedCourseId")?.value;
 
   if (!assignmentId || !courseId) {
-    return NextResponse.json(
-      { error: "Missing assignment or course ID" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Missing IDs" }, { status: 400 });
   }
 
   try {
@@ -53,45 +43,41 @@ export async function POST(req) {
     const busboy = Busboy({ headers: { "content-type": contentType } });
     const fields = {};
     const newFiles = [];
-
+    let keepExistingFiles = false;
     const timestamp = Date.now();
-    let fileCounter = 1;
 
-    const parsePromise = new Promise((resolve, reject) => {
-      // Add field handler to capture form fields
+    await new Promise((resolve, reject) => {
       busboy.on("field", (name, value) => {
-        fields[name] = value;
+        if (name === "keep_existing_files") {
+          keepExistingFiles = value === "true";
+        } else {
+          fields[name] = value;
+        }
       });
 
-      // Keep only one file handler
       busboy.on("file", (name, file, info) => {
-        const originalExtension = path.extname(info.filename);
-        const filename = `${timestamp}-${fileCounter++}${originalExtension}`;
-        const savePath = path.join(uploadDir, filename);
+        const originalName = info.filename;
+        const newName = `${timestamp}-${originalName}`;
+        const savePath = path.join(uploadDir, newName);
         const writeStream = fs.createWriteStream(savePath);
 
-        file.pipe(writeStream);
-        file.on("end", () => {
+        file.pipe(writeStream).on("finish", () => {
           newFiles.push({
-            path: `/courseMaterials/${filename}`,
+            path: `/courseMaterials/${newName}`,
             physicalPath: savePath,
           });
         });
       });
 
-      busboy.on("error", (err) => reject(err));
+      busboy.on("error", reject);
       busboy.on("finish", resolve);
-
       busboy.write(rawBody);
       busboy.end();
     });
 
-    await parsePromise;
-
     // Validate required fields
     const { assignment_title, assignment_description, due_date } = fields;
     if (!assignment_title || !assignment_description || !due_date) {
-      // Cleanup newly uploaded files if validation fails
       newFiles.forEach(
         (file) =>
           fs.existsSync(file.physicalPath) && fs.unlinkSync(file.physicalPath)
@@ -102,49 +88,46 @@ export async function POST(req) {
       );
     }
 
-    // Get existing files before deletion
-    const existingFiles = await query(
-      "SELECT file_path FROM assignment_material WHERE assignment_id = ?",
-      [assignmentId]
-    );
+    // Only delete existing files if new files are being uploaded
+    if (!keepExistingFiles) {
+      const existingFiles = await query(
+        "SELECT file_path FROM assignment_material WHERE assignment_id = ?",
+        [assignmentId]
+      );
+      existingFiles.forEach((file) => {
+        const filePath = path.join(process.cwd(), "public", file.file_path);
+        fs.existsSync(filePath) && fs.unlinkSync(filePath);
+      });
 
-    // Delete old physical files
-    existingFiles.forEach((file) => {
-      const filePath = path.join(process.cwd(), "public", file.file_path);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    });
+      await query("DELETE FROM assignment_material WHERE assignment_id = ?", [
+        assignmentId,
+      ]);
+    }
 
-    // Delete old database records
-    await query("DELETE FROM assignment_material WHERE assignment_id = ?", [
-      assignmentId,
-    ]);
-
-    // Update assignment details
+    // Update assignment
     await query(
       `UPDATE assignment SET
-        assignment_title = ?,
-        assignment_description = ?,
-        due_date = ?,
-        updated_at = CURRENT_TIMESTAMP
+        assignment_title = ?, assignment_description = ?, due_date = ?, updated_at = NOW()
        WHERE assignment_id = ?`,
       [assignment_title, assignment_description, due_date, assignmentId]
     );
 
-    // Insert new files
-    for (const file of newFiles) {
-      await query(
-        "INSERT INTO assignment_material (assignment_id, course_id, file_path) VALUES (?, ?, ?)",
-        [assignmentId, courseId, file.path]
-      );
+    // Insert new files if any
+    if (newFiles.length > 0) {
+      for (const file of newFiles) {
+        await query(
+          "INSERT INTO assignment_material (assignment_id, course_id, file_path) VALUES (?, ?, ?)",
+          [assignmentId, courseId, file.path]
+        );
+      }
     }
 
     return NextResponse.json(
-      { message: "Assignment updated successfully with file replacement" },
+      { message: "Assignment updated successfully" },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error processing request:", error);
-    // Cleanup any partially uploaded files on error
+    console.error("Processing error:", error);
     newFiles?.forEach(
       (file) =>
         fs.existsSync(file.physicalPath) && fs.unlinkSync(file.physicalPath)
