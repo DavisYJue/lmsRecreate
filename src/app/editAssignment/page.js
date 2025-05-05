@@ -1,38 +1,75 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
 
-const AddAssignment = () => {
+const EditAssignment = () => {
   const router = useRouter();
+
   const [assignmentTitle, setAssignmentTitle] = useState("");
   const [assignmentDescription, setAssignmentDescription] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [files, setFiles] = useState([]);
+
+  useEffect(() => {
+    const fetchAssignment = async () => {
+      try {
+        const res = await fetch("/api/courses/editAssignment");
+        if (res.ok) {
+          const data = await res.json();
+          setAssignmentTitle(data.assignment_title);
+          setAssignmentDescription(data.assignment_description);
+          setDueDate(data.due_date?.split("T")[0] || "");
+        } else {
+          console.error("Failed to fetch assignment details");
+        }
+      } catch (error) {
+        console.error("Error fetching assignment:", error);
+      }
+    };
+
+    fetchAssignment();
+  }, []);
 
   const handleFileUpload = (e) => {
     const uploadedFiles = Array.from(e.target.files);
     setFiles((prevFiles) => [...prevFiles, ...uploadedFiles]);
   };
 
-  const handleSubmit = () => {
-    if (assignmentTitle && assignmentDescription && files.length > 0) {
-      // Handle assignment creation logic here
-      console.log(
-        "Assignment added:",
-        assignmentTitle,
-        assignmentDescription,
-        files
-      );
-      // Redirect back to course page or assignments list
-      router.push("/manageAssignment");
+  const handleSubmit = async () => {
+    if (!assignmentTitle || !assignmentDescription || !dueDate) return;
+
+    const formData = new FormData();
+    formData.append("assignment_title", assignmentTitle);
+    formData.append("assignment_description", assignmentDescription);
+    formData.append("due_date", dueDate);
+
+    files.forEach((file, index) => {
+      formData.append(`files`, file);
+    });
+
+    try {
+      const res = await fetch("/api/courses/updateAssignment", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        alert("Assignment updated successfully!");
+        router.push("/manageAssignment");
+      } else {
+        const error = await res.json();
+        alert("Update failed: " + error.error);
+      }
+    } catch (error) {
+      console.error("Error submitting update:", error);
+      alert("An error occurred while updating the assignment.");
     }
   };
 
-  // Check if all fields are filled to enable the submit button
-  const isFormValid =
-    assignmentTitle && assignmentDescription && files.length > 0;
+  const isFormValid = assignmentTitle && assignmentDescription && dueDate;
 
   return (
     <div
@@ -75,6 +112,18 @@ const AddAssignment = () => {
             />
           </div>
 
+          <div>
+            <label className="block text-gray-700 font-semibold">
+              Due Date
+            </label>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md mt-2"
+            />
+          </div>
+
           <div className="mt-4">
             <label className="block text-gray-700 font-semibold">
               Attach Assignment Materials
@@ -99,7 +148,6 @@ const AddAssignment = () => {
             )}
           </div>
 
-          {/* Always display submit button but disable it if the form is not valid */}
           <div className="mt-4 flex justify-end">
             <Button
               onClick={handleSubmit}
@@ -124,4 +172,4 @@ const AddAssignment = () => {
   );
 };
 
-export default AddAssignment;
+export default EditAssignment;

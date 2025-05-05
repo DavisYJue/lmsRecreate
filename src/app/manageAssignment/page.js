@@ -19,6 +19,7 @@ const ManageAssignments = () => {
 
         // inside your useEffect parser
         const parsedData = data.map((a) => ({
+          assignmentId: a.assignment_id, // 👈 Include this
           title: a.title,
           submissions: a.submissions.map((s) => ({
             submissionId: s.submission_id,
@@ -29,7 +30,7 @@ const ManageAssignments = () => {
             grade: s.grade ?? "",
             confirmed: s.confirmed,
             submissionTime: new Date(s.submission_time),
-            role: s.role, // ✅ FIXED: include the role here
+            role: s.role,
           })),
           notSubmitted: a.notSubmitted,
         }));
@@ -51,6 +52,17 @@ const ManageAssignments = () => {
         return next;
       });
     }
+  };
+
+  const handleEditInfo = async (assignmentId) => {
+    // Set cookie via API call (cannot set cookie from client using `next/headers`)
+    await fetch("/api/courses/setAssignmentId", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assignmentId }),
+    });
+
+    router.push("/editAssignment");
   };
 
   const confirmGrade = async (ai, si) => {
@@ -134,11 +146,6 @@ const ManageAssignments = () => {
         </h2>
 
         <div className="flex justify-end gap-5 mt-6">
-          <Button
-            onClick={() => router.push("/editAssignment")}
-            text="Edit Assignment"
-            className="px-4 py-2 bg-fuchsia-200 hover:bg-purple-400 text-slate-950"
-          />
           <Button
             onClick={() => router.push("/addAssignment")}
             text="Add Assignment"
@@ -230,6 +237,12 @@ const ManageAssignments = () => {
                   </ul>
                 </div>
               )}
+
+              <Button
+                onClick={() => handleEditInfo(assignment.assignmentId)}
+                text="Edit Course "
+                className="px-3 py-1 mt-4 bg-yellow-200 hover:bg-yellow-300 text-slate-950 self-start"
+              />
             </div>
           ))}
         </div>
