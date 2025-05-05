@@ -54,13 +54,19 @@ export async function POST(req) {
     const fields = {};
     const newFiles = [];
 
+    const timestamp = Date.now();
+    let fileCounter = 1;
+
     const parsePromise = new Promise((resolve, reject) => {
+      // Add field handler to capture form fields
       busboy.on("field", (name, value) => {
         fields[name] = value;
       });
 
+      // Keep only one file handler
       busboy.on("file", (name, file, info) => {
-        const filename = info.filename;
+        const originalExtension = path.extname(info.filename);
+        const filename = `${timestamp}-${fileCounter++}${originalExtension}`;
         const savePath = path.join(uploadDir, filename);
         const writeStream = fs.createWriteStream(savePath);
 

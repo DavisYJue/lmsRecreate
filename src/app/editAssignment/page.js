@@ -112,7 +112,6 @@ const EditAssignment = () => {
               className="w-full p-2 border border-gray-300 rounded-md mt-2"
             />
           </div>
-
           <div>
             <label className="block text-gray-700 font-semibold">
               Assignment Description
@@ -125,7 +124,6 @@ const EditAssignment = () => {
               rows="4"
             />
           </div>
-
           <div>
             <label className="block text-gray-700 font-semibold">
               Due Date
@@ -146,7 +144,7 @@ const EditAssignment = () => {
             {existingFiles.length > 0 && (
               <div className="mt-2">
                 <p className="text-gray-700 font-semibold">
-                  Existing Files (will be replaced):
+                  Current Server Files:
                 </p>
                 <ul className="list-disc pl-5">
                   {existingFiles.map((file, index) => (
@@ -168,14 +166,20 @@ const EditAssignment = () => {
             {files.length > 0 && (
               <div className="mt-2">
                 <p className="text-gray-700 font-semibold">
-                  New Files (replacing previous selection):
+                  Files to Upload (will replace current files):
                 </p>
                 <ul className="list-disc pl-5">
-                  {files.map((file, index) => (
-                    <li key={`new-${index}`} className="text-gray-700">
-                      {file.name}
-                    </li>
-                  ))}
+                  {files.map((file, index) => {
+                    const fileNameParts = file.name.split(".");
+                    const extension =
+                      fileNameParts.length > 1 ? `.${fileNameParts.pop()}` : "";
+                    return (
+                      <li key={`new-${index}`} className="text-gray-700">
+                        {file.name} (will be renamed to {Date.now()}-{index + 1}
+                        {extension})
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
@@ -187,10 +191,10 @@ const EditAssignment = () => {
               className="w-full p-2 border border-gray-300 rounded-md mt-2"
             />
             <p className="text-sm text-gray-500 mt-1">
-              Selecting new files will replace previous selection
+              Uploaded files will be automatically renamed and replace existing
+              files
             </p>
           </div>
-
           <div className="mt-4 flex justify-end">
             <Button
               onClick={handleSubmit}
