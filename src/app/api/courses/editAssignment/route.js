@@ -1,4 +1,3 @@
-// /api/courses/editAssignment/route.js
 import { cookies } from "next/headers";
 import { query } from "../../../../../lib/db";
 
@@ -25,7 +24,19 @@ export async function GET() {
       });
     }
 
-    return new Response(JSON.stringify(assignment), { status: 200 });
+    // Fetch existing files
+    const existingFiles = await query(
+      "SELECT file_path FROM assignment_material WHERE assignment_id = ?",
+      [assignmentId]
+    );
+
+    return new Response(
+      JSON.stringify({
+        ...assignment,
+        files: existingFiles.map((file) => file.file_path),
+      }),
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error fetching assignment:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {

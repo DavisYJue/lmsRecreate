@@ -12,6 +12,7 @@ const EditAssignment = () => {
   const [assignmentDescription, setAssignmentDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [files, setFiles] = useState([]);
+  const [existingFiles, setExistingFiles] = useState([]);
 
   useEffect(() => {
     const fetchAssignment = async () => {
@@ -22,6 +23,7 @@ const EditAssignment = () => {
           setAssignmentTitle(data.assignment_title);
           setAssignmentDescription(data.assignment_description);
           setDueDate(data.due_date?.split("T")[0] || "");
+          setExistingFiles(data.files || []);
         } else {
           console.error("Failed to fetch assignment details");
         }
@@ -35,7 +37,8 @@ const EditAssignment = () => {
 
   const handleFileUpload = (e) => {
     const uploadedFiles = Array.from(e.target.files);
-    setFiles((prevFiles) => [...prevFiles, ...uploadedFiles]);
+    // Replace previous files instead of appending
+    setFiles(uploadedFiles);
   };
 
   const handleSubmit = async () => {
@@ -46,8 +49,8 @@ const EditAssignment = () => {
     formData.append("assignment_description", assignmentDescription);
     formData.append("due_date", dueDate);
 
-    files.forEach((file, index) => {
-      formData.append(`files`, file);
+    files.forEach((file) => {
+      formData.append("files", file);
     });
 
     try {
@@ -56,16 +59,27 @@ const EditAssignment = () => {
         body: formData,
       });
 
+      // Handle response safely
+      const responseText = await res.text();
+      let result = {};
+      try {
+        result = responseText ? JSON.parse(responseText) : {};
+      } catch (e) {
+        console.error("Failed to parse response:", e);
+      }
+
       if (res.ok) {
         alert("Assignment updated successfully!");
         router.push("/manageAssignment");
       } else {
-        const error = await res.json();
-        alert("Update failed: " + error.error);
+        alert(`Update failed: ${result.error || "Unknown error"}`);
+        // Clear files on error
+        setFiles([]);
       }
     } catch (error) {
-      console.error("Error submitting update:", error);
-      alert("An error occurred while updating the assignment.");
+      console.error("Network error:", error);
+      alert("Failed to connect to server");
+      setFiles([]);
     }
   };
 
@@ -126,26 +140,55 @@ const EditAssignment = () => {
 
           <div className="mt-4">
             <label className="block text-gray-700 font-semibold">
-              Attach Assignment Materials
+              Assignment Materials
             </label>
-            <input
-              type="file"
-              multiple
-              onChange={handleFileUpload}
-              className="w-full p-2 border border-gray-300 rounded-md mt-2"
-            />
+
+            {existingFiles.length > 0 && (
+              <div className="mt-2">
+                <p className="text-gray-700 font-semibold">
+                  Existing Files (will be replaced):
+                </p>
+                <ul className="list-disc pl-5">
+                  {existingFiles.map((file, index) => (
+                    <li key={`existing-${index}`} className="text-gray-700">
+                      <a
+                        href={file}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {file.split("/").pop()}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {files.length > 0 && (
               <div className="mt-2">
-                <p className="text-gray-700 font-semibold">Attached Files:</p>
+                <p className="text-gray-700 font-semibold">
+                  New Files (replacing previous selection):
+                </p>
                 <ul className="list-disc pl-5">
                   {files.map((file, index) => (
-                    <li key={index} className="text-gray-700">
+                    <li key={`new-${index}`} className="text-gray-700">
                       {file.name}
                     </li>
                   ))}
                 </ul>
               </div>
             )}
+
+            <input
+              type="file"
+              multiple
+              onChange={handleFileUpload}
+              className="w-full p-2 border border-gray-300 rounded-md mt-2"
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              Selecting new files will replace previous selection
+            </p>
           </div>
 
           <div className="mt-4 flex justify-end">
