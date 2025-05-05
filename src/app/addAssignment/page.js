@@ -9,30 +9,57 @@ const AddAssignment = () => {
   const router = useRouter();
   const [assignmentTitle, setAssignmentTitle] = useState("");
   const [assignmentDescription, setAssignmentDescription] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [files, setFiles] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleFileUpload = (e) => {
     const uploadedFiles = Array.from(e.target.files);
     setFiles((prevFiles) => [...prevFiles, ...uploadedFiles]);
   };
 
-  const handleSubmit = () => {
-    if (assignmentTitle && assignmentDescription && files.length > 0) {
-      // Handle assignment creation logic here
-      console.log(
-        "Assignment added:",
-        assignmentTitle,
-        assignmentDescription,
-        files
-      );
-      // Redirect back to course page or assignments list
-      router.push("/manageAssignment");
+  const handleSubmit = async () => {
+    if (
+      !assignmentTitle ||
+      !assignmentDescription ||
+      !dueDate ||
+      files.length === 0
+    )
+      return;
+
+    const formData = new FormData();
+    formData.append("assignmentTitle", assignmentTitle);
+    formData.append("assignmentDescription", assignmentDescription);
+    formData.append("dueDate", dueDate);
+
+    files.forEach((file) => {
+      formData.append("files", file); // fieldname for Busboy will be "files"
+    });
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/courses/addAssignment", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        alert("Assignment added successfully!");
+        router.push("/manageAssignment");
+      } else {
+        const result = await response.json();
+        alert("Failed to add assignment: " + result.error);
+      }
+    } catch (error) {
+      console.error("Error submitting assignment:", error);
+      alert("Server error occurred.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Check if all fields are filled to enable the submit button
   const isFormValid =
-    assignmentTitle && assignmentDescription && files.length > 0;
+    assignmentTitle && assignmentDescription && dueDate && files.length > 0;
 
   return (
     <div
@@ -75,6 +102,18 @@ const AddAssignment = () => {
             />
           </div>
 
+          <div>
+            <label className="block text-gray-700 font-semibold">
+              Due Date
+            </label>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md mt-2"
+            />
+          </div>
+
           <div className="mt-4">
             <label className="block text-gray-700 font-semibold">
               Attach Assignment Materials
@@ -99,13 +138,12 @@ const AddAssignment = () => {
             )}
           </div>
 
-          {/* Always display submit button but disable it if the form is not valid */}
           <div className="mt-4 flex justify-end">
             <Button
               onClick={handleSubmit}
-              text="Submit Assignment"
+              text={isSubmitting ? "Submitting..." : "Submit Assignment"}
               className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
-              disabled={!isFormValid}
+              disabled={!isFormValid || isSubmitting}
             />
           </div>
         </div>
