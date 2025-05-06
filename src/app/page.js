@@ -58,8 +58,23 @@ export default function LoginPage() {
         throw new Error(data.error || "Login failed");
       }
 
-      const redirectPath =
-        data.role === "student" ? "/lmsMainPageStudent" : "/lmsMainPage";
+      let redirectPath = "/";
+
+      switch (data.role) {
+        case "student":
+          redirectPath = "/lmsMainPageStudent";
+          break;
+        case "teacher":
+        case "assistant":
+          redirectPath = "/lmsMainPage";
+          break;
+        case "administrator":
+          redirectPath = "/lmsMainPageAdmin";
+          break;
+        default:
+          redirectPath = "/"; // fallback in case of unknown role
+      }
+
       router.push(redirectPath);
     } catch (err) {
       setError(err.message);

@@ -127,7 +127,14 @@ export default function EditProfilePage() {
       }
 
       const role = originalData?.role || userData.role || "student";
-      router.push(role === "student" ? "/lmsMainPageStudent" : "/lmsMainPage");
+
+      if (role === "student") {
+        router.push("/lmsMainPageStudent");
+      } else if (role === "administrator") {
+        router.push("/lmsMainPageAdmin");
+      } else {
+        router.push("/lmsMainPage"); // teacher or assistant
+      }
     } catch (error) {
       console.error("Update error:", error);
       setError(error.message);
@@ -149,7 +156,14 @@ export default function EditProfilePage() {
       setConfirmModal({ show: true, type: "cancel" });
     } else {
       const role = originalData?.role || userData.role || "student";
-      router.push(role === "student" ? "/lmsMainPageStudent" : "/lmsMainPage");
+
+      if (role === "student") {
+        router.push("/lmsMainPageStudent");
+      } else if (role === "administrator") {
+        router.push("/lmsMainPageAdmin");
+      } else {
+        router.push("/lmsMainPage"); // teacher or assistant
+      }
     }
   };
 
@@ -161,7 +175,14 @@ export default function EditProfilePage() {
   const handleCancelModalConfirm = () => {
     setConfirmModal({ show: false, type: null });
     const role = originalData?.role || userData.role || "student";
-    router.push(role === "student" ? "/lmsMainPageStudent" : "/lmsMainPage");
+
+    if (role === "student") {
+      router.push("/lmsMainPageStudent");
+    } else if (role === "administrator") {
+      router.push("/lmsMainPageAdmin");
+    } else {
+      router.push("/lmsMainPage"); // teacher or assistant
+    }
   };
 
   const handleModalCancel = () => {

@@ -68,6 +68,10 @@ export default function LmsMainPageAdmin() {
     // if role === "student", do nothing (or you could hide the button entirely)
   };
 
+  const handleCreateAccount = () => {
+    router.push("/createAccount");
+  };
+
   const filterCourses = (courses) => {
     const currentDate = new Date();
     return courses.filter((course) => {
@@ -156,14 +160,19 @@ export default function LmsMainPageAdmin() {
     >
       <NavBar username={username} />
       <main className="flex-grow p-8 flex flex-col">
-        {/* only show/manage navigation based on role */}
-        {role !== "student" && (
+        <div className="flex flex-row gap-7 justify-end">
+          <Button
+            text="Create Account"
+            onClick={handleCreateAccount}
+            className="self-end mb-6 px-4 py-2 text-slate-950 bg-yellow-200 hover:bg-amber-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-amber-700 active:text-white active:border-amber-400"
+          />
+
           <Button
             text="Manage Courses You Teach"
             onClick={handleManageCourses}
             className="self-end mb-6 px-4 py-2 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 transition active:bg-fuchsia-900 active:text-white"
           />
-        )}
+        </div>
 
         <Filter
           filter={filter}
