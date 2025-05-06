@@ -117,14 +117,6 @@ const ManageMainPageAssistant = () => {
           Manage Your Courses
         </h2>
 
-        <div className="mb-4">
-          <Button
-            onClick={() => handleAddCourse()}
-            text="Add New Course"
-            className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
-          />
-        </div>
-
         <ul className="divide-y">
           {courses.length > 0 ? (
             courses.map((course) => (
@@ -139,16 +131,6 @@ const ManageMainPageAssistant = () => {
                   <p className="text-gray-700">{course.course_description}</p>
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    onClick={() => handleEditCourse(course)}
-                    text="Edit"
-                    className="px-3 py-1 text-slate-950 bg-blue-300 hover:bg-indigo-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-indigo-950 active:text-white active:border-indigo-400"
-                  />
-                  <Button
-                    onClick={() => confirmDeleteCourse(course.course_id)}
-                    text="Delete"
-                    className="px-3 py-1 text-slate-950 bg-red-300 hover:bg-rose-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-pink-800 active:text-white active:border-rose-400"
-                  />
                   <Button
                     onClick={() => handleManageClick(course.course_id, course)}
                     text="Manage"
@@ -166,24 +148,10 @@ const ManageMainPageAssistant = () => {
       {/* Manage Options Popup */}
       {isPopupOpen && (
         <div className="fixed inset-0 bg-opacity-30 backdrop-blur-md flex justify-center items-center">
-          <div className="bg-white border-3 px-6 py-3 rounded-lg shadow-lg w-115 h-90 text-center">
+          <div className="bg-white border-3 px-6 py-3 rounded-lg shadow-lg w-115 h-65 text-center">
             <h3 className="text-xl font-bold mb-4">Manage Course</h3>
             <p className="mb-4">What do you want to manage?</p>
             <div className="flex flex-col gap-4">
-              <div className="flex justify-center gap-4">
-                <Button
-                  onClick={() => handleManageCourseStudent()}
-                  text="Manage Course's Students"
-                  className="w-50 h-20 px-4 py-2 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
-                />
-
-                <Button
-                  onClick={() => handleManageCourseTA()}
-                  text="Manage Teaching Assistants"
-                  className="w-50 h-20 px-4 py-2 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
-                />
-              </div>
-
               <div className="flex justify-center gap-4">
                 <Button
                   onClick={() => handleManageCourseMaterial()}

@@ -8,7 +8,7 @@ import Footer from "../components/Footer";
 import Button from "../components/Button";
 import EmptyState from "../components/EmptyState";
 
-export default function LmsMainPage() {
+export default function LmsMainPageAdmin() {
   const [filter, setFilter] = useState("all");
   const [username, setUsername] = useState("");
   const [role, setRole] = useState(""); // ← new
