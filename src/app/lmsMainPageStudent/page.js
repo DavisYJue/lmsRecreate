@@ -7,7 +7,7 @@ import Filter from "../components/Filter";
 import Footer from "../components/Footer";
 import EmptyState from "../components/EmptyState";
 
-export default function LmsMainPage() {
+export default function LmsMainPageStudent() {
   const [filter, setFilter] = useState("all");
   const [username, setUsername] = useState("");
   const [yourCourses, setYourCourses] = useState([]);
