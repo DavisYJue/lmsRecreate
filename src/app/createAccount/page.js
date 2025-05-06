@@ -5,6 +5,7 @@ import { FiEye, FiEyeOff } from "react-icons/fi";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
+import ConfirmationPopup from "../components/ConfirmationPopup";
 
 export default function CreateAccount() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export default function CreateAccount() {
   const [profilePicture, setProfilePicture] = useState(null);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
     // Clean up object URL to prevent memory leaks
@@ -45,25 +47,8 @@ export default function CreateAccount() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-
-    if (
-      !userData.username ||
-      !userData.email ||
-      !password ||
-      !confirmPassword
-    ) {
-      setError("Please fill out all required fields.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-
+  const handleConfirmedSubmit = async () => {
+    setShowConfirmModal(false);
     setIsSubmitting(true);
 
     const formData = new FormData();
@@ -93,6 +78,28 @@ export default function CreateAccount() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (
+      !userData.username ||
+      !userData.email ||
+      !password ||
+      !confirmPassword
+    ) {
+      setError("Please fill out all required fields.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setShowConfirmModal(true); // Show confirmation before submitting
   };
 
   return (
@@ -237,6 +244,16 @@ export default function CreateAccount() {
           </div>
         </form>
       </main>
+
+      {showConfirmModal && (
+        <ConfirmationPopup
+          title="Confirm Account Creation"
+          message="Are you sure you want to create this account?"
+          onConfirm={handleConfirmedSubmit}
+          onCancel={() => setShowConfirmModal(false)}
+        />
+      )}
+
       <Footer />
     </div>
   );
