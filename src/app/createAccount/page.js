@@ -27,15 +27,26 @@ export default function CreateAccount() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [studentData, setStudentData] = useState({ name: "", class: "" });
+  const [teacherData, setTeacherData] = useState({ name: "", faculty: "" });
+  const [assistantData, setAssistantData] = useState({
+    name: "",
+    department: "",
+  });
 
   useEffect(() => {
-    // Clean up object URL to prevent memory leaks
     return () => {
       if (profilePicture?.preview) {
         URL.revokeObjectURL(profilePicture.preview);
       }
     };
   }, [profilePicture]);
+
+  useEffect(() => {
+    setStudentData({ name: "", class: "" });
+    setTeacherData({ name: "", faculty: "" });
+    setAssistantData({ name: "", department: "" });
+  }, [userData.role]);
 
   const handleProfilePictureChange = (e) => {
     const file = e.target.files[0];
@@ -56,6 +67,22 @@ export default function CreateAccount() {
       formData.append(key, value)
     );
     formData.append("password", password);
+
+    switch (userData.role) {
+      case "student":
+        formData.append("studentName", studentData.name);
+        formData.append("className", studentData.class);
+        break;
+      case "teacher":
+        formData.append("teacherName", teacherData.name);
+        formData.append("faculty", teacherData.faculty);
+        break;
+      case "assistant":
+        formData.append("assistantName", assistantData.name);
+        formData.append("department", assistantData.department);
+        break;
+    }
+
     if (profilePicture?.file) {
       formData.append("profile_image", profilePicture.file);
     }
@@ -99,7 +126,128 @@ export default function CreateAccount() {
       return;
     }
 
-    setShowConfirmModal(true); // Show confirmation before submitting
+    if (
+      userData.role === "student" &&
+      (!studentData.name || !studentData.class)
+    ) {
+      setError("Please fill out student name and class.");
+      return;
+    }
+
+    if (
+      userData.role === "teacher" &&
+      (!teacherData.name || !teacherData.faculty)
+    ) {
+      setError("Please fill out teacher name and faculty.");
+      return;
+    }
+
+    if (
+      userData.role === "assistant" &&
+      (!assistantData.name || !assistantData.department)
+    ) {
+      setError("Please fill out assistant name and department.");
+      return;
+    }
+
+    setShowConfirmModal(true);
+  };
+
+  const renderRoleSpecificFields = () => {
+    switch (userData.role) {
+      case "student":
+        return (
+          <div className="space-y-4">
+            <div className="mb-4">
+              <label className="block mb-1 font-medium">Student Name:</label>
+              <input
+                type="text"
+                value={studentData.name}
+                onChange={(e) =>
+                  setStudentData({ ...studentData, name: e.target.value })
+                }
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-300"
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block mb-1 font-medium">Class:</label>
+              <input
+                type="text"
+                value={studentData.class}
+                onChange={(e) =>
+                  setStudentData({ ...studentData, class: e.target.value })
+                }
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-300"
+                required
+              />
+            </div>
+          </div>
+        );
+      case "teacher":
+        return (
+          <div className="space-y-4">
+            <div className="mb-4">
+              <label className="block mb-1 font-medium">Teacher Name:</label>
+              <input
+                type="text"
+                value={teacherData.name}
+                onChange={(e) =>
+                  setTeacherData({ ...teacherData, name: e.target.value })
+                }
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-300"
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block mb-1 font-medium">Faculty:</label>
+              <input
+                type="text"
+                value={teacherData.faculty}
+                onChange={(e) =>
+                  setTeacherData({ ...teacherData, faculty: e.target.value })
+                }
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-300"
+                required
+              />
+            </div>
+          </div>
+        );
+      case "assistant":
+        return (
+          <div className="space-y-4">
+            <div className="mb-4">
+              <label className="block mb-1 font-medium">Assistant Name:</label>
+              <input
+                type="text"
+                value={assistantData.name}
+                onChange={(e) =>
+                  setAssistantData({ ...assistantData, name: e.target.value })
+                }
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-300"
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block mb-1 font-medium">Department:</label>
+              <input
+                type="text"
+                value={assistantData.department}
+                onChange={(e) =>
+                  setAssistantData({
+                    ...assistantData,
+                    department: e.target.value,
+                  })
+                }
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-300"
+                required
+              />
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -114,7 +262,6 @@ export default function CreateAccount() {
             <div className="text-red-500 mb-4 text-center">{error}</div>
           )}
 
-          {/* Profile picture upload + preview */}
           <div className="mb-4 text-center">
             <img
               src={profilePicture?.preview || "/profile/defaultProfile.webp"}
@@ -134,7 +281,6 @@ export default function CreateAccount() {
             />
           </div>
 
-          {/* Text inputs */}
           {[
             { label: "Username", name: "username", type: "text" },
             { label: "Email", name: "email", type: "email" },
@@ -155,7 +301,6 @@ export default function CreateAccount() {
             </div>
           ))}
 
-          {/* Role selector */}
           <div className="mb-4">
             <label className="block mb-1 font-medium">Role:</label>
             <select
@@ -173,7 +318,8 @@ export default function CreateAccount() {
             </select>
           </div>
 
-          {/* Bio */}
+          {renderRoleSpecificFields()}
+
           <div className="mb-4">
             <label className="block mb-1 font-medium">Bio:</label>
             <textarea
@@ -185,7 +331,6 @@ export default function CreateAccount() {
             />
           </div>
 
-          {/* Password */}
           <div className="mb-4">
             <label className="block mb-1 font-medium">Password:</label>
             <div className="relative">
@@ -206,7 +351,6 @@ export default function CreateAccount() {
             </div>
           </div>
 
-          {/* Confirm Password */}
           <div className="mb-6">
             <label className="block mb-1 font-medium">Confirm Password:</label>
             <div className="relative">
@@ -227,7 +371,6 @@ export default function CreateAccount() {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex flex-col items-center gap-4 mt-8">
             <Button
               text={isSubmitting ? "Creating..." : "Create Account"}

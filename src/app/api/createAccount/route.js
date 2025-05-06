@@ -18,7 +18,6 @@ async function saveProfileImage(buffer, filename) {
 
 export async function POST(request) {
   try {
-    // --- parse multipart/form-data with Busboy ---
     const headers = Object.fromEntries(request.headers.entries());
     const bb = Busboy({ headers });
     const fields = {};
@@ -55,17 +54,16 @@ export async function POST(request) {
     bb.end();
     await parsing;
 
-    // --- extract fields ---
+    // Extract form data
     const username = (fields.username || "").trim();
     const email = (fields.email || "").trim();
     const role = (fields.role || "").trim();
     const password = fields.password || "";
-
     const telephone = (fields.telephone || "").trim() || null;
     const address = (fields.address || "").trim() || null;
     const bio = (fields.bio || "").trim() || null;
 
-    // --- validate required ---
+    // Validate required fields
     if (!username || !email || !role || !password) {
       return NextResponse.json(
         { message: "Missing required fields" },
@@ -73,7 +71,6 @@ export async function POST(request) {
       );
     }
 
-    // --- enforce password length ---
     if (password.length < 8) {
       return NextResponse.json(
         { message: "Password must be at least 8 characters long." },
@@ -81,7 +78,34 @@ export async function POST(request) {
       );
     }
 
-    // --- optional image upload ---
+    // Validate role-specific fields
+    const studentName = fields.studentName?.trim();
+    const className = fields.className?.trim();
+    const teacherName = fields.teacherName?.trim();
+    const faculty = fields.faculty?.trim();
+    const assistantName = fields.assistantName?.trim();
+    const department = fields.department?.trim();
+
+    if (role === "student" && (!studentName || !className)) {
+      return NextResponse.json(
+        { message: "Student name and class are required" },
+        { status: 400 }
+      );
+    }
+    if (role === "teacher" && (!teacherName || !faculty)) {
+      return NextResponse.json(
+        { message: "Teacher name and faculty are required" },
+        { status: 400 }
+      );
+    }
+    if (role === "assistant" && (!assistantName || !department)) {
+      return NextResponse.json(
+        { message: "Assistant name and department are required" },
+        { status: 400 }
+      );
+    }
+
+    // Handle profile image
     let profileImagePath = null;
     if (fileUpload && fileUpload.buffer.length) {
       profileImagePath = await saveProfileImage(
@@ -90,10 +114,10 @@ export async function POST(request) {
       );
     }
 
-    // --- insert into DB ---
-    await query(
-      `INSERT INTO account
-         (username, email, telephone, address, bio, role, password, profile_image, created_at)
+    // Create account
+    const accountResult = await query(
+      `INSERT INTO account 
+       (username, email, telephone, address, bio, role, password, profile_image, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         username,
@@ -103,15 +127,41 @@ export async function POST(request) {
         bio,
         role,
         password,
-        profileImagePath, // NULL if no upload
+        profileImagePath || null,
       ]
     );
+    const accountId = accountResult.insertId;
+
+    // Create role-specific entry
+    switch (role) {
+      case "student":
+        await query(
+          `INSERT INTO student (student_name, class, account_id)
+           VALUES (?, ?, ?)`,
+          [studentName, className, accountId]
+        );
+        break;
+      case "teacher":
+        await query(
+          `INSERT INTO teacher (teacher_name, faculty, account_id)
+           VALUES (?, ?, ?)`,
+          [teacherName, faculty, accountId]
+        );
+        break;
+      case "assistant":
+        await query(
+          `INSERT INTO assistant (assistant_name, department, account_id)
+           VALUES (?, ?, ?)`,
+          [assistantName, department, accountId]
+        );
+        break;
+      // Administrator doesn't need a separate entry
+    }
 
     return NextResponse.json({ message: "Account created successfully" });
   } catch (err) {
-    console.error(" ACCOUNT CREATION ERR:", err);
+    console.error("Account creation error:", err);
 
-    // --- duplicate-entry handling ---
     if (err.code === "ER_DUP_ENTRY") {
       if (err.sqlMessage.includes("account.username")) {
         return NextResponse.json(
@@ -131,7 +181,6 @@ export async function POST(request) {
       );
     }
 
-    // --- fallback ---
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }
