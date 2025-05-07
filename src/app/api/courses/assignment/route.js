@@ -89,6 +89,7 @@ export async function GET() {
           assignment_id: a.assignment_id,
           title: a.assignment_title,
           max_grade: a.max_grade,
+          due_date: a.due_date, // ✅ Add this line
           submissions: [...studentSubs, ...otherSubs].map((s) => ({
             submission_id: s.submission_id,
             submitter: s.submitter,

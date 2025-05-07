@@ -19,8 +19,9 @@ const ManageAssignments = () => {
 
         // inside your useEffect parser
         const parsedData = data.map((a) => ({
-          assignmentId: a.assignment_id, // 👈 Include this
+          assignmentId: a.assignment_id,
           title: a.title,
+          dueDate: new Date(a.due_date), // 👈 Add this line
           submissions: a.submissions.map((s) => ({
             submissionId: s.submission_id,
             student: s.submitter,
@@ -163,7 +164,11 @@ const ManageAssignments = () => {
                   {assignment.submissions.map((sub, si) => (
                     <li
                       key={si}
-                      className="flex flex-wrap items-center justify-between p-3 bg-white shadow rounded-lg"
+                      className={`flex flex-wrap items-center justify-between p-3 shadow rounded-lg ${
+                        sub.submissionTime > assignment.dueDate
+                          ? "bg-red-100" // late submission
+                          : "bg-green-100" // on-time submission
+                      }`}
                     >
                       <div className="w-1/4">
                         <p className="font-medium text-gray-700">
