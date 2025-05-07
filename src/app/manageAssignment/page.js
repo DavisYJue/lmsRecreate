@@ -164,18 +164,24 @@ const ManageAssignments = () => {
                   {assignment.submissions.map((sub, si) => (
                     <li
                       key={si}
-                      className={`flex flex-wrap items-center justify-between p-3 shadow rounded-lg ${
-                        sub.submissionTime > assignment.dueDate
-                          ? "bg-red-100" // late submission
-                          : "bg-green-100" // on-time submission
-                      }`}
+                      className="flex flex-wrap items-center justify-between p-3 shadow rounded-lg bg-gray-100"
                     >
                       <div className="w-1/4">
                         <p className="font-medium text-gray-700">
                           {sub.student}
                         </p>
-                        <p className="text-sm text-gray-500">
-                          Date: {sub.submissionTime.toLocaleDateString()}
+                        <p
+                          className={`text-sm font-medium ${
+                            sub.submissionTime > assignment.dueDate
+                              ? "text-red-500"
+                              : "text-green-600"
+                          }`}
+                        >
+                          Date: {sub.submissionTime.toLocaleDateString()} (
+                          {sub.submissionTime > assignment.dueDate
+                            ? "Late"
+                            : "On-time"}
+                          )
                         </p>
                       </div>
 
