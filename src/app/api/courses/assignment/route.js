@@ -14,71 +14,74 @@ export async function GET() {
 
     const assignments = await query(
       `SELECT assignment_id, assignment_title, max_grade
-         FROM assignment
-         WHERE course_id = ?`,
+       FROM assignment
+       WHERE course_id = ?`,
       [courseId]
     );
 
     const data = await Promise.all(
       assignments.map(async (a) => {
+        // Student submissions with real names
         const studentSubs = await query(
           `SELECT
-               s.submission_id,
-               acc.username       AS submitter,
-               s.file_path,
-               s.grade,
-               s.grade IS NOT NULL AS confirmed,
-               s.submission_time,
-               s.graded_by,
-               'student'          AS role
-             FROM submission s
-             JOIN student st ON s.student_id = st.student_id
-             JOIN account acc ON st.account_id = acc.account_id
-             WHERE s.assignment_id = ?`,
+            s.submission_id,
+            st.student_name AS submitter,
+            s.file_path,
+            s.grade,
+            s.grade IS NOT NULL AS confirmed,
+            s.submission_time,
+            s.graded_by,
+            'student' AS role
+          FROM submission s
+          JOIN student st ON s.student_id = st.student_id
+          WHERE s.assignment_id = ?`,
           [a.assignment_id]
         );
 
+        // Teacher/assistant submissions with real names
         const otherSubs = await query(
           `SELECT
-               s.submission_id,
-               acc.username       AS submitter,
-               s.file_path,
-               s.grade,
-               s.grade IS NOT NULL AS confirmed,
-               s.submission_time,
-               s.graded_by,
-               'other'            AS role
-             FROM othersubmission s
-             JOIN account acc ON s.account_id = acc.account_id
-             WHERE s.assignment_id = ?`,
+            s.submission_id,
+            COALESCE(t.teacher_name, a.assistant_name) AS submitter,
+            s.file_path,
+            s.grade,
+            s.grade IS NOT NULL AS confirmed,
+            s.submission_time,
+            s.graded_by,
+            acc.role AS role
+          FROM othersubmission s
+          JOIN account acc ON s.account_id = acc.account_id
+          LEFT JOIN teacher t ON acc.account_id = t.account_id AND acc.role = 'teacher'
+          LEFT JOIN assistant a ON acc.account_id = a.account_id AND acc.role = 'assistant'
+          WHERE s.assignment_id = ?`,
           [a.assignment_id]
         );
 
-        // Optional: fetch students who haven't submitted yet (e.g., from enrollment)
+        // Participants who haven't submitted
         const notSubmitted = await query(
-          `
-          SELECT 
+          `SELECT 
             s.student_name AS name
           FROM enrollment e
           JOIN student s ON e.student_id = s.student_id
           JOIN assignment a ON e.course_id = a.course_id
           LEFT JOIN submission sub 
-            ON sub.assignment_id = a.assignment_id AND sub.student_id = s.student_id
+          ON sub.assignment_id = a.assignment_id AND sub.student_id = s.student_id
           WHERE a.assignment_id = ?
-            AND sub.submission_id IS NULL
-    
+          AND sub.submission_id IS NULL
+
           UNION
-    
+
           SELECT 
-            acc.username AS name
+            COALESCE(t.teacher_name, ast.assistant_name) AS name
           FROM otherenrollment oe
           JOIN account acc ON oe.account_id = acc.account_id
-          JOIN assignment a ON oe.course_id = a.course_id
+          LEFT JOIN teacher t ON acc.account_id = t.account_id AND acc.role = 'teacher'
+          LEFT JOIN assistant ast ON acc.account_id = ast.account_id AND acc.role = 'assistant'
+          JOIN assignment a2 ON oe.course_id = a2.course_id
           LEFT JOIN othersubmission osub 
-            ON osub.assignment_id = a.assignment_id AND osub.account_id = acc.account_id
-          WHERE a.assignment_id = ?
-            AND osub.submission_id IS NULL;
-          `,
+            ON osub.assignment_id = a2.assignment_id AND osub.account_id = acc.account_id
+          WHERE a2.assignment_id = ?
+            AND osub.submission_id IS NULL`,
           [a.assignment_id, a.assignment_id]
         );
 

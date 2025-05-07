@@ -170,7 +170,7 @@ const ManageAssignments = () => {
                           {sub.student}
                         </p>
                         <p className="text-sm text-gray-500">
-                          Time: {sub.submissionTime.toLocaleString()}
+                          Date: {sub.submissionTime.toLocaleDateString()}
                         </p>
                       </div>
 
