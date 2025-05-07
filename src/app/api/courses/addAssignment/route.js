@@ -29,12 +29,13 @@ export async function POST(req) {
     const uploadDir = path.join(process.cwd(), "public/courseMaterials");
     await fs.mkdir(uploadDir, { recursive: true });
 
-    // Create Busboy instance with correct headers
+    // Create Busboy instance
     const contentType = req.headers.get("content-type") || "";
     const bb = Busboy({ headers: { "content-type": contentType } });
 
     const fields = {};
     const filePaths = [];
+    let fileIndex = 0; // for naming
 
     // Convert Web ReadableStream -> Node Readable and pipe into Busboy
     const nodeStream = Readable.fromWeb(req.body);
@@ -47,11 +48,18 @@ export async function POST(req) {
       });
 
       bb.on("file", (name, fileStream, info) => {
-        const { filename } = info;
-        const saveTo = path.join(uploadDir, filename);
+        fileIndex += 1;
+        const originalExt = path.extname(info.filename);
+        const timestamp = Date.now();
+        const newFilename = `${timestamp}-${fileIndex}${originalExt}`;
+        const saveTo = path.join(uploadDir, newFilename);
+
+        // write file
         const out = fsSync.createWriteStream(saveTo);
         fileStream.pipe(out);
-        filePaths.push(`/courseMaterials/${filename}`);
+
+        // track for DB insert
+        filePaths.push(`/courseMaterials/${newFilename}`);
       });
 
       bb.on("error", reject);
@@ -81,7 +89,7 @@ export async function POST(req) {
     }
     const teacherId = courseRow.teacher_id;
 
-    // Insert assignment with default max_grade = 100
+    // Insert assignment
     const result = await query(
       `INSERT INTO assignment
         (assignment_title, assignment_description, max_grade, due_date, course_id, teacher_id, created_at, updated_at)
@@ -90,7 +98,7 @@ export async function POST(req) {
     );
     const assignmentId = result.insertId;
 
-    // Insert materials
+    // Insert materials records
     for (const filePath of filePaths) {
       await query(
         `INSERT INTO assignment_material (assignment_id, file_path, course_id)

@@ -1,9 +1,11 @@
 "use client";
+
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
+import ConfirmationPopup from "../components/ConfirmationPopup";
 
 const AddAssignment = () => {
   const router = useRouter();
@@ -13,30 +15,32 @@ const AddAssignment = () => {
   const [files, setFiles] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Confirmation popup state
+  const [showConfirm, setShowConfirm] = useState(false);
+
   const handleFileUpload = (e) => {
     const uploadedFiles = Array.from(e.target.files);
     setFiles((prevFiles) => [...prevFiles, ...uploadedFiles]);
   };
 
+  // Called when user clicks the Submit button
+  const handlePrepareSubmit = () => {
+    if (assignmentTitle && assignmentDescription && dueDate && files.length) {
+      setShowConfirm(true);
+    }
+  };
+
+  // Actual submission logic
   const handleSubmit = async () => {
-    if (
-      !assignmentTitle ||
-      !assignmentDescription ||
-      !dueDate ||
-      files.length === 0
-    )
-      return;
+    setShowConfirm(false);
+    setIsSubmitting(true);
 
     const formData = new FormData();
     formData.append("assignmentTitle", assignmentTitle);
     formData.append("assignmentDescription", assignmentDescription);
     formData.append("dueDate", dueDate);
+    files.forEach((file) => formData.append("files", file));
 
-    files.forEach((file) => {
-      formData.append("files", file); // fieldname for Busboy will be "files"
-    });
-
-    setIsSubmitting(true);
     try {
       const response = await fetch("/api/courses/addAssignment", {
         method: "POST",
@@ -140,7 +144,7 @@ const AddAssignment = () => {
 
           <div className="mt-4 flex justify-end">
             <Button
-              onClick={handleSubmit}
+              onClick={handlePrepareSubmit}
               text={isSubmitting ? "Submitting..." : "Submit Assignment"}
               className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
               disabled={!isFormValid || isSubmitting}
@@ -158,6 +162,15 @@ const AddAssignment = () => {
       </div>
 
       <Footer />
+
+      {showConfirm && (
+        <ConfirmationPopup
+          title="Confirm Submission"
+          message="Are you sure you want to add this assignment?"
+          onCancel={() => setShowConfirm(false)}
+          onConfirm={handleSubmit}
+        />
+      )}
     </div>
   );
 };

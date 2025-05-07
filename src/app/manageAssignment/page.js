@@ -5,10 +5,15 @@ import { useRouter } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
+import ConfirmationPopup from "../components/ConfirmationPopup";
 
 const ManageAssignments = () => {
   const router = useRouter();
   const [assignments, setAssignments] = useState([]);
+
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState(null);
 
   useEffect(() => {
     const fetchAssignments = async () => {
@@ -17,11 +22,10 @@ const ManageAssignments = () => {
         if (!res.ok) throw new Error("Failed to fetch assignments");
         const data = await res.json();
 
-        // inside your useEffect parser
         const parsedData = data.map((a) => ({
           assignmentId: a.assignment_id,
           title: a.title,
-          dueDate: new Date(a.due_date), // 👈 Add this line
+          dueDate: new Date(a.due_date),
           submissions: a.submissions.map((s) => ({
             submissionId: s.submission_id,
             student: s.submitter,
@@ -55,43 +59,29 @@ const ManageAssignments = () => {
     }
   };
 
-  const handleEditInfo = async (assignmentId) => {
-    // Set cookie via API call (cannot set cookie from client using `next/headers`)
-    await fetch("/api/courses/setAssignmentId", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ assignmentId }),
-    });
-
-    router.push("/editAssignment");
-  };
-
   const confirmGrade = async (ai, si) => {
-    const updatedSubmission = assignments[ai].submissions[si];
-    if (updatedSubmission.grade === "") return;
+    const updated = assignments[ai].submissions[si];
+    if (updated.grade === "") return;
 
     setAssignments((prev) => {
       const next = [...prev];
-      next[ai].submissions[si].confirmed = true; // Update confirmed flag locally
+      next[ai].submissions[si].confirmed = true;
       return next;
     });
 
     try {
       const res = await fetch("/api/courses/assignment", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          submission_id: updatedSubmission.submissionId,
-          new_grade: updatedSubmission.grade,
-          role: updatedSubmission.role, // "student" or "other"
-          confirmed: true, // Send the confirmed status to the backend
+          submission_id: updated.submissionId,
+          new_grade: updated.grade,
+          role: updated.role,
+          confirmed: true,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to confirm grade");
-
       console.log("Grade confirmed", data);
     } catch (err) {
       console.error("Error confirming grade:", err);
@@ -99,36 +89,66 @@ const ManageAssignments = () => {
   };
 
   const regrade = async (ai, si) => {
-    const updatedSubmission = assignments[ai].submissions[si];
-    // Set the grade to null (or an empty string) for regrade
+    const updated = assignments[ai].submissions[si];
+
     setAssignments((prev) => {
       const next = [...prev];
-      next[ai].submissions[si].grade = ""; // Reset to empty string
-      next[ai].submissions[si].confirmed = false; // Reset confirmed flag
+      next[ai].submissions[si].grade = "";
+      next[ai].submissions[si].confirmed = false;
       return next;
     });
 
     try {
       const res = await fetch("/api/courses/assignment", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          submission_id: updatedSubmission.submissionId,
-          new_grade: "", // Set the grade to empty (or null, depending on preference)
-          role: updatedSubmission.role, // "student" or "other"
-          confirmed: false, // Reset the confirmed status
+          submission_id: updated.submissionId,
+          new_grade: "",
+          role: updated.role,
+          confirmed: false,
         }),
       });
-
       const data = await res.json();
-      if (!res.ok)
-        throw new Error(data.error || "Failed to regrade submission");
-
+      if (!res.ok) throw new Error(data.error || "Failed to regrade");
       console.log("Regrade successful", data);
     } catch (err) {
       console.error("Error regrading:", err);
+    }
+  };
+
+  const handleEditInfo = async (assignmentId) => {
+    await fetch("/api/courses/setAssignmentId", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assignmentId }),
+    });
+    router.push("/editAssignment");
+  };
+
+  const handleDeleteAssignment = async () => {
+    try {
+      const res = await fetch("/api/courses/deleteAssignment", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignment_id: selectedAssignmentId }),
+      });
+      const result = await res.json();
+
+      if (res.ok) {
+        setAssignments((prev) =>
+          prev.filter((a) => a.assignmentId !== selectedAssignmentId)
+        );
+        alert("Assignment deleted successfully!"); // ← success alert
+      } else {
+        alert(result.error || "Failed to delete assignment");
+      }
+    } catch (err) {
+      console.error("Error deleting assignment:", err);
+      alert("Server error occurred while deleting assignment.");
+    } finally {
+      setShowDeleteConfirm(false);
+      setSelectedAssignmentId(null);
     }
   };
 
@@ -156,14 +176,17 @@ const ManageAssignments = () => {
 
         <div className="mt-6 space-y-6">
           {assignments.map((assignment, ai) => (
-            <div key={ai} className="p-4 border rounded-lg bg-gray-50">
+            <div
+              key={assignment.assignmentId}
+              className="p-4 border rounded-lg bg-gray-50"
+            >
               <h3 className="text-xl font-semibold mb-3">{assignment.title}</h3>
 
               {assignment.submissions.length > 0 ? (
                 <ul className="space-y-3">
                   {assignment.submissions.map((sub, si) => (
                     <li
-                      key={si}
+                      key={sub.submissionId}
                       className="flex flex-wrap items-center justify-between p-3 shadow rounded-lg bg-gray-100"
                     >
                       <div className="w-1/4">
@@ -249,15 +272,37 @@ const ManageAssignments = () => {
                 </div>
               )}
 
-              <Button
-                onClick={() => handleEditInfo(assignment.assignmentId)}
-                text="Edit Course "
-                className="px-3 py-1 mt-4 bg-yellow-200 hover:bg-yellow-300 text-slate-950 self-start"
-              />
+              <div className="mt-4 flex gap-2">
+                <Button
+                  onClick={() => handleEditInfo(assignment.assignmentId)}
+                  text="Edit Course"
+                  className="px-3 py-1 bg-yellow-200 hover:bg-yellow-300 text-slate-950"
+                />
+                <Button
+                  onClick={() => {
+                    setSelectedAssignmentId(assignment.assignmentId);
+                    setShowDeleteConfirm(true);
+                  }}
+                  text="Delete Assignment"
+                  className="px-3 py-1 bg-red-300 hover:bg-rose-400 text-slate-950"
+                />
+              </div>
             </div>
           ))}
         </div>
       </main>
+
+      {showDeleteConfirm && (
+        <ConfirmationPopup
+          title="Confirm Delete"
+          message="Are you sure you want to delete this assignment? This cannot be undone."
+          onCancel={() => {
+            setShowDeleteConfirm(false);
+            setSelectedAssignmentId(null);
+          }}
+          onConfirm={handleDeleteAssignment}
+        />
+      )}
 
       <div className="mt-auto p-4 flex justify-center">
         <Button
