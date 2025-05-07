@@ -148,15 +148,31 @@ const CourseDetails = () => {
                 {(courseData.assignments || []).map((assignment, index) => (
                   <li key={index} className="p-2 border-b">
                     <div className="flex justify-between items-center">
-                      <span
-                        className={
-                          submittedFiles[assignment.assignment_title]
-                            ? "text-green-600 font-bold"
-                            : ""
-                        }
-                      >
-                        {assignment.assignment_title}
-                      </span>
+                      {(() => {
+                        const submitted =
+                          submittedFiles[assignment.assignment_title];
+                        const dueDate = new Date(assignment.due_date);
+                        const now = new Date();
+                        const isLate = submitted
+                          ? new Date(submitted.submittedAt) > dueDate
+                          : now > dueDate;
+
+                        let textColor = "text-black";
+                        if (submitted && isLate)
+                          textColor = "text-red-600 font-bold";
+                        else if (submitted && !isLate)
+                          textColor = "text-green-600 font-bold";
+                        else if (!submitted && isLate)
+                          textColor = "text-red-600 font-bold";
+                        else textColor = "text-black";
+
+                        return (
+                          <span className={`${textColor}`}>
+                            {assignment.assignment_title}
+                          </span>
+                        );
+                      })()}
+
                       <div className="flex gap-2">
                         <Button
                           onClick={() =>
@@ -181,10 +197,14 @@ const CourseDetails = () => {
                         <p className="text-gray-700 font-semibold">
                           Description:
                         </p>
+
                         <p className="mb-2">
                           {assignment.assignment_description}
                         </p>
-                        <p className="text-gray-700 font-semibold mb-1">
+
+                        <hr className="mt-3"></hr>
+
+                        <p className="text-gray-700 font-semibold mb-1 mt-3">
                           Attach your answer here:
                         </p>
 
@@ -317,6 +337,8 @@ const CourseDetails = () => {
                           )}
                         </div>
 
+                        <hr className="mt-3"></hr>
+
                         {(assignment.materials || []).length > 0 && (
                           <div className="mt-4">
                             <h4 className="text-lg font-semibold">
@@ -338,6 +360,24 @@ const CourseDetails = () => {
                             </ul>
                           </div>
                         )}
+
+                        <hr className="mt-3"></hr>
+
+                        <div className="text-gray-700 font-semibold text-lg mt-3">
+                          <p>Due Date:</p>
+
+                          <p className="text-gray-600 text-sm">
+                            {" "}
+                            {new Date(assignment.due_date).toLocaleDateString(
+                              "en-US",
+                              {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              }
+                            )}
+                          </p>
+                        </div>
                       </div>
                     )}
                   </li>

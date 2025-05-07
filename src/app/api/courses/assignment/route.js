@@ -13,7 +13,7 @@ export async function GET() {
     }
 
     const assignments = await query(
-      `SELECT assignment_id, assignment_title, max_grade
+      `SELECT assignment_id, assignment_title, max_grade, due_date
        FROM assignment
        WHERE course_id = ?`,
       [courseId]
