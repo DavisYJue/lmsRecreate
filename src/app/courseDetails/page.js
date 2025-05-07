@@ -258,7 +258,7 @@ const CourseDetails = () => {
                                     id: assignment.assignment_id,
                                   })
                                 }
-                                className="mt-2 px-3 py-1 text-slate-950 bg-emerald-200 hover:bg-green-400"
+                                className="mt-2 px-3 py-1 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
                               />
 
                               {showSubmitConfirm && (
