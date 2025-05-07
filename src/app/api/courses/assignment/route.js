@@ -55,7 +55,32 @@ export async function GET() {
         );
 
         // Optional: fetch students who haven't submitted yet (e.g., from enrollment)
-        const notSubmitted = []; // Fill this if needed
+        const notSubmitted = await query(
+          `
+          SELECT 
+            s.student_name AS name
+          FROM enrollment e
+          JOIN student s ON e.student_id = s.student_id
+          JOIN assignment a ON e.course_id = a.course_id
+          LEFT JOIN submission sub 
+            ON sub.assignment_id = a.assignment_id AND sub.student_id = s.student_id
+          WHERE a.assignment_id = ?
+            AND sub.submission_id IS NULL
+    
+          UNION
+    
+          SELECT 
+            acc.username AS name
+          FROM otherenrollment oe
+          JOIN account acc ON oe.account_id = acc.account_id
+          JOIN assignment a ON oe.course_id = a.course_id
+          LEFT JOIN othersubmission osub 
+            ON osub.assignment_id = a.assignment_id AND osub.account_id = acc.account_id
+          WHERE a.assignment_id = ?
+            AND osub.submission_id IS NULL;
+          `,
+          [a.assignment_id, a.assignment_id]
+        );
 
         return {
           assignment_id: a.assignment_id,
@@ -71,7 +96,7 @@ export async function GET() {
             graded_by: s.graded_by,
             role: s.role,
           })),
-          notSubmitted,
+          notSubmitted: notSubmitted.map((row) => row.name),
         };
       })
     );
