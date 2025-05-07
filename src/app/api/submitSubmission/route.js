@@ -65,10 +65,7 @@ export async function POST(request) {
       filePaths.push(`/submissions/${roleSubdir}/${filename}`);
     }
 
-    const submissionTime = new Date()
-      .toISOString()
-      .slice(0, 19)
-      .replace("T", " ");
+    const submissionTime = new Date().toISOString().split("T")[0];
 
     if (isStudent) {
       await query(

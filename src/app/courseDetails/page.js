@@ -266,7 +266,7 @@ const CourseDetails = () => {
                                   submittedFiles[
                                     assignment.assignment_title
                                   ].submittedAt
-                                ).toLocaleString()}
+                                ).toLocaleDateString()}
                               </p>
                               <ul className="list-disc pl-5">
                                 {submittedFiles[
