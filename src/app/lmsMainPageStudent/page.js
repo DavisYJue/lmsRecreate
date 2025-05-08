@@ -96,6 +96,7 @@ export default function LmsMainPageStudent() {
 
       if (res.ok) {
         fetchUserDataAndCourses();
+        alert("Successfully enrolled in the course!");
       } else {
         const err = await res.json();
         alert(err.error || err.message || "Failed to enroll");
