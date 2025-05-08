@@ -155,7 +155,7 @@ const ManageAssistance = () => {
             <Button
               text="Add Assistant"
               onClick={() => setIsPopupOpen(true)}
-              className="mb-4 px-4 py-2 text-slate-950 bg-blue-300 hover:bg-indigo-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-indigo-950 active:text-white active:border-indigo-400"
+              className="mb-4 px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
             />
 
             <DataTable

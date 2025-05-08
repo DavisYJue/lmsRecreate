@@ -170,7 +170,7 @@ const ManageAssignments = () => {
           <Button
             onClick={() => router.push("/addAssignment")}
             text="Add Assignment"
-            className="px-4 py-2 bg-blue-300 hover:bg-indigo-400 text-slate-950"
+            className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
           />
         </div>
 
@@ -244,14 +244,14 @@ const ManageAssignments = () => {
                         <Button
                           onClick={() => confirmGrade(ai, si)}
                           text="Confirm"
-                          className="px-3 py-1 bg-emerald-200 hover:bg-green-400 text-slate-950"
+                          className="px-3 py-1 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
                           disabled={sub.grade === ""}
                         />
                       ) : (
                         <Button
                           onClick={() => regrade(ai, si)}
                           text="Re-grade"
-                          className="px-3 py-1 bg-red-300 hover:bg-rose-400 text-slate-950"
+                          className="px-3 py-1 text-slate-950 bg-red-300 hover:bg-rose-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-pink-800 active:text-white active:border-rose-400"
                         />
                       )}
                     </li>
@@ -276,7 +276,7 @@ const ManageAssignments = () => {
                 <Button
                   onClick={() => handleEditInfo(assignment.assignmentId)}
                   text="Edit Assignment"
-                  className="px-3 py-1 bg-yellow-200 hover:bg-yellow-300 text-slate-950"
+                  className="px-3 py-1 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
                 />
                 <Button
                   onClick={() => {
@@ -284,7 +284,7 @@ const ManageAssignments = () => {
                     setShowDeleteConfirm(true);
                   }}
                   text="Delete Assignment"
-                  className="px-3 py-1 bg-red-300 hover:bg-rose-400 text-slate-950"
+                  className="px-3 py-1 text-slate-950 bg-red-300 hover:bg-rose-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-pink-800 active:text-white active:border-rose-400"
                 />
               </div>
             </div>
@@ -308,7 +308,7 @@ const ManageAssignments = () => {
         <Button
           onClick={() => router.push("/manageMainPage")}
           text="Back"
-          className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white"
+          className="px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 font-bold border-2 border-slate-900 active:bg-slate-900 active:border-stone-50 delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100"
         />
       </div>
 

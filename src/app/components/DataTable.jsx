@@ -18,7 +18,7 @@ const DataTable = ({ data, searchQuery, onRemove, entityType }) => {
         <tr className="bg-gray-200">
           <th className="border border-gray-300 p-2">Name</th>
           <th className="border border-gray-300 p-2">
-            {entityType === "Student" ? "Student ID" : "Account ID"}
+            {entityType === "Student" ? "Student ID" : "Assistant ID"}
           </th>
           <th className="border border-gray-300 p-2">
             {entityType === "Assistant"
