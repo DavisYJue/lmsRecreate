@@ -36,19 +36,29 @@ const ManageMainPage = () => {
     fetchCourses();
   }, []);
 
-  const confirmDeleteCourse = (id) => {
-    setSelectedCourseId(id);
-    setIsConfirmPopupOpen(true);
+  const confirmDeleteCourse = (course) => {
+    setSelectedCourseId(course.course_id); // Store the course ID in the state
+    setSelectedCourseData(course); // Optionally store the course data if needed
+    setIsConfirmPopupOpen(true); // Open the confirmation popup
   };
 
-  const handleDeleteCourse = () => {
-    setCourses(
-      courses.filter((course) => course.course_id !== selectedCourseId)
-    );
-    setIsConfirmPopupOpen(false);
-    // optional: call API to delete from database too
+  const handleDeleteCourse = async () => {
+    try {
+      const res = await fetch(`/api/courses/deleteCourse`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId: selectedCourseId }),
+      });
+      if (!res.ok) throw new Error("Failed to delete course");
+      setCourses((prev) =>
+        prev.filter((course) => course.course_id !== selectedCourseId)
+      );
+      setIsConfirmPopupOpen(false);
+      window.alert("Course deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting course:", error);
+    }
   };
-
   const handleAddCourse = () => {
     router.push("/addCourse");
   };
@@ -145,7 +155,7 @@ const ManageMainPage = () => {
                     className="px-3 py-1 text-slate-950 bg-blue-300 hover:bg-indigo-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-indigo-950 active:text-white active:border-indigo-400"
                   />
                   <Button
-                    onClick={() => confirmDeleteCourse(course.course_id)}
+                    onClick={() => confirmDeleteCourse(course)} // Pass the entire course object
                     text="Delete"
                     className="px-3 py-1 text-slate-950 bg-red-300 hover:bg-rose-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-pink-800 active:text-white active:border-rose-400"
                   />
@@ -214,13 +224,12 @@ const ManageMainPage = () => {
       {isConfirmPopupOpen && (
         <ConfirmationPopup
           title="Confirm Deletion"
-          message="Are you sure you want to delete this course? This action cannot be undone."
+          message="Are you sure you want to delete this course?"
           onConfirm={handleDeleteCourse}
           onCancel={() => setIsConfirmPopupOpen(false)}
         />
       )}
 
-      {/* Back Button */}
       <div className="flex justify-center">
         <Button
           text="Back"
