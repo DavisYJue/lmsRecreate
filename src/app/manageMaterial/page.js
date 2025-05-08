@@ -9,6 +9,7 @@ import ConfirmationPopup from "../components/ConfirmationPopup";
 const ManageMaterials = () => {
   const router = useRouter();
   const fileInputRef = useRef(null);
+  const [userRole, setUserRole] = useState("");
 
   const [materials, setMaterials] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
@@ -32,28 +33,43 @@ const ManageMaterials = () => {
   const [showConfirmEditFile, setShowConfirmEditFile] = useState(false);
 
   useEffect(() => {
-    fetchMaterials();
-  }, []);
-
-  const fetchMaterials = async () => {
-    try {
-      const res = await fetch("/api/courses/material", { method: "GET" });
-      const data = await res.json();
-
-      if (res.ok) {
-        // Corrected data structure access
-        setMaterials(data.materials || []);
-        setCourseData({
-          title: data.course?.course_title || "Course Materials",
-          description: data.course?.course_description || "",
-        });
-      } else {
-        console.error("Failed to fetch materials:", data.error);
+    const fetchUserRole = async () => {
+      try {
+        const res = await fetch("/api/user");
+        if (!res.ok) throw new Error("Failed to fetch user role");
+        const data = await res.json();
+        setUserRole(data.role);
+      } catch (error) {
+        console.error("Error fetching user role:", error);
       }
-    } catch (error) {
-      console.error("Error fetching materials:", error);
-    }
-  };
+    };
+
+    const fetchMaterials = async () => {
+      try {
+        const res = await fetch("/api/courses/material", { method: "GET" });
+        const data = await res.json();
+
+        if (res.ok) {
+          setMaterials(data.materials || []);
+          setCourseData({
+            title: data.course?.course_title || "Course Materials",
+            description: data.course?.course_description || "",
+          });
+        } else {
+          console.error("Failed to fetch materials:", data.error);
+        }
+      } catch (error) {
+        console.error("Error fetching materials:", error);
+      }
+    };
+
+    const fetchData = async () => {
+      await fetchUserRole();
+      await fetchMaterials();
+    };
+
+    fetchData();
+  }, []);
 
   const handleFileChange = (e) => {
     setNewMaterial((prev) => ({ ...prev, file: e.target.files[0] }));
@@ -101,7 +117,6 @@ const ManageMaterials = () => {
 
   const handleRemove = async () => {
     try {
-      // Find the material before deletion to get its title
       const materialToDeleteObj = materials.find(
         (material) => material.material_id === materialToDelete
       );
@@ -152,7 +167,6 @@ const ManageMaterials = () => {
       console.error("Error updating material:", error);
       alert("Error updating title");
     } finally {
-      // Always close both popups regardless of success/failure
       setShowEditPopup(false);
       setShowConfirmEditTitle(false);
     }
@@ -174,7 +188,6 @@ const ManageMaterials = () => {
         body: formData,
       });
 
-      // Handle non-JSON responses
       const contentType = res.headers.get("content-type");
       let result;
 
@@ -196,16 +209,33 @@ const ManageMaterials = () => {
       await fetchMaterials();
       alert("File updated successfully!");
 
-      // Close both popups on success
       setShowEditFilePopup(false);
       setShowConfirmEditFile(false);
     } catch (error) {
       console.error("Error updating file:", error);
       alert(`Error updating file: ${error.message}`);
     } finally {
-      // Ensure popups are closed even if error occurs
       setShowEditFilePopup(false);
       setShowConfirmEditFile(false);
+    }
+  };
+
+  const fetchMaterials = async () => {
+    try {
+      const res = await fetch("/api/courses/material", { method: "GET" });
+      const data = await res.json();
+
+      if (res.ok) {
+        setMaterials(data.materials || []);
+        setCourseData({
+          title: data.course?.course_title || "Course Materials",
+          description: data.course?.course_description || "",
+        });
+      } else {
+        console.error("Failed to fetch materials:", data.error);
+      }
+    } catch (error) {
+      console.error("Error fetching materials:", error);
     }
   };
 
@@ -293,7 +323,11 @@ const ManageMaterials = () => {
 
       <div className="mt-auto p-4 flex justify-center w-full">
         <Button
-          onClick={() => router.push("/manageMainPage")}
+          onClick={() => {
+            userRole === "assistant"
+              ? router.push("/manageMainPageAssistant")
+              : router.push("/manageMainPage");
+          }}
           text="Back"
           className="px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 font-bold border-2 border-slate-900 active:bg-slate-900 active:border-stone-50 delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100"
         />

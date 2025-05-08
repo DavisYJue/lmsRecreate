@@ -10,12 +10,22 @@ import ConfirmationPopup from "../components/ConfirmationPopup";
 const ManageAssignments = () => {
   const router = useRouter();
   const [assignments, setAssignments] = useState([]);
-
-  // Delete confirmation state
+  const [userRole, setUserRole] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState(null);
 
   useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const res = await fetch("/api/user");
+        if (!res.ok) throw new Error("Failed to fetch user role");
+        const data = await res.json();
+        setUserRole(data.role);
+      } catch (error) {
+        console.error("Error fetching user role:", error);
+      }
+    };
+
     const fetchAssignments = async () => {
       try {
         const res = await fetch("/api/courses/assignment");
@@ -46,6 +56,7 @@ const ManageAssignments = () => {
       }
     };
 
+    fetchUserRole();
     fetchAssignments();
   }, []);
 
@@ -306,7 +317,11 @@ const ManageAssignments = () => {
 
       <div className="mt-auto p-4 flex justify-center">
         <Button
-          onClick={() => router.push("/manageMainPage")}
+          onClick={() => {
+            userRole === "assistant"
+              ? router.push("/manageMainPageAssistant")
+              : router.push("/manageMainPage");
+          }}
           text="Back"
           className="px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 font-bold border-2 border-slate-900 active:bg-slate-900 active:border-stone-50 delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-100"
         />
