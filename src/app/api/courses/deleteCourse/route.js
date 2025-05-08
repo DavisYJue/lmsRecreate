@@ -15,6 +15,12 @@ export async function DELETE(req) {
       );
     }
 
+    // Get course image path first
+    const courseImages = await query(
+      "SELECT course_image FROM course WHERE course_id = ?",
+      [courseId]
+    );
+
     // Get all assignment IDs for this course
     const assignments = await query(
       "SELECT assignment_id FROM assignment WHERE course_id = ?",
@@ -24,6 +30,11 @@ export async function DELETE(req) {
 
     // Collect all file paths
     const allPaths = [];
+
+    // Add course image to deletion list
+    if (courseImages.length > 0 && courseImages[0].course_image) {
+      allPaths.push(courseImages[0].course_image);
+    }
 
     // 1. Material files
     const materials = await query(
@@ -110,7 +121,6 @@ export async function DELETE(req) {
         ]),
       () => query("DELETE FROM assignment WHERE course_id = ?", [courseId]),
       // Delete course-related records
-
       () => query("DELETE FROM material WHERE course_id = ?", [courseId]),
       () => query("DELETE FROM enrollment WHERE course_id = ?", [courseId]),
       () =>
