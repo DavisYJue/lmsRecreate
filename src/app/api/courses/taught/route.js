@@ -16,10 +16,11 @@ export async function GET() {
 
     if (role === "teacher") {
       const sql = `
-        SELECT course_id, course_title, course_description
-        FROM course
-        WHERE teacher_id = ?
-      `;
+  SELECT c.course_id, c.course_title, c.course_description
+  FROM course c
+  JOIN teacher t ON c.teacher_id = t.teacher_id
+  WHERE t.account_id = ?
+`;
       courses = await query(sql, [account_id]);
     } else if (role === "assistant") {
       // find your assistant_id
