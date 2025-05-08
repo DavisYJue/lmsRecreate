@@ -234,7 +234,7 @@ const ManageMaterials = () => {
             <Button
               onClick={() => setShowUploadPopup(true)}
               text="Upload New Material"
-              className="px-3 py-1 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
+              className="px-3 py-1 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
             />
           </div>
 
@@ -276,7 +276,7 @@ const ManageMaterials = () => {
                         setShowEditFilePopup(true);
                       }}
                       text="Edit File"
-                      className="px-3 py-1 text-slate-950 bg-orange-200 hover:bg-orange-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-orange-700 active:text-white active:border-orange-400"
+                      className="px-3 py-1 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
                     />
                     <Button
                       onClick={() => confirmDelete(material.material_id)}
@@ -401,7 +401,7 @@ const ManageMaterials = () => {
               <Button
                 onClick={() => setShowConfirmEditFile(true)}
                 text="Update File"
-                className="px-4 py-2 text-slate-950 bg-emerald-200 hover:bg-green-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-green-900 active:text-white active:border-green-400"
+                className="px-4 py-2 text-slate-950 bg-fuchsia-200 hover:bg-purple-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-fuchsia-900 active:text-white active:border-fuchsia-400"
               />
             </div>
           </div>
