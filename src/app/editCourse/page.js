@@ -143,6 +143,7 @@ const EditCourse = () => {
         throw new Error(result.message || "Update failed");
       }
 
+      alert("Course updated successfully!");
       router.push("/manageMainPage");
     } catch (error) {
       console.error("Update error:", error);

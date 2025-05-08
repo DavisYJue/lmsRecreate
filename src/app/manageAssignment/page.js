@@ -275,7 +275,7 @@ const ManageAssignments = () => {
               <div className="mt-4 flex gap-2">
                 <Button
                   onClick={() => handleEditInfo(assignment.assignmentId)}
-                  text="Edit Course"
+                  text="Edit Assignment"
                   className="px-3 py-1 bg-yellow-200 hover:bg-yellow-300 text-slate-950"
                 />
                 <Button

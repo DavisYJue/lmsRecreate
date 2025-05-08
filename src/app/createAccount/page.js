@@ -34,6 +34,20 @@ export default function CreateAccount() {
     department: "",
   });
 
+  const isFormValid =
+    userData.username &&
+    userData.email &&
+    password &&
+    confirmPassword &&
+    password === confirmPassword &&
+    (userData.role === "student"
+      ? studentData.name && studentData.class
+      : userData.role === "teacher"
+      ? teacherData.name && teacherData.faculty
+      : userData.role === "assistant"
+      ? assistantData.name && assistantData.department
+      : true);
+
   useEffect(() => {
     return () => {
       if (profilePicture?.preview) {
@@ -111,42 +125,8 @@ export default function CreateAccount() {
     e.preventDefault();
     setError("");
 
-    if (
-      !userData.username ||
-      !userData.email ||
-      !password ||
-      !confirmPassword
-    ) {
-      setError("Please fill out all required fields.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    if (
-      userData.role === "student" &&
-      (!studentData.name || !studentData.class)
-    ) {
-      setError("Please fill out student name and class.");
-      return;
-    }
-
-    if (
-      userData.role === "teacher" &&
-      (!teacherData.name || !teacherData.faculty)
-    ) {
-      setError("Please fill out teacher name and faculty.");
-      return;
-    }
-
-    if (
-      userData.role === "assistant" &&
-      (!assistantData.name || !assistantData.department)
-    ) {
-      setError("Please fill out assistant name and department.");
+    if (!isFormValid) {
+      setError("Please fill out all required fields correctly.");
       return;
     }
 
@@ -375,7 +355,7 @@ export default function CreateAccount() {
             <Button
               text={isSubmitting ? "Creating..." : "Create Account"}
               type="submit"
-              disabled={isSubmitting}
+              disabled={!isFormValid || isSubmitting}
               className="text-slate-950 bg-blue-300 hover:bg-indigo-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-indigo-950 active:text-white active:border-indigo-400 py-2 rounded w-42"
             />
             <Button

@@ -33,6 +33,10 @@ export async function GET() {
     return new Response(
       JSON.stringify({
         ...assignment,
+        due_date: assignment.due_date
+          ? assignment.due_date.toLocaleDateString("en-CA") // Outputs YYYY-MM-DD
+          : null,
+
         files: existingFiles.map((file) => file.file_path),
       }),
       { status: 200 }

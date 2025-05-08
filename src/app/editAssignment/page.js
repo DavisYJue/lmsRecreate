@@ -23,7 +23,12 @@ const EditAssignment = () => {
           const data = await res.json();
           setAssignmentTitle(data.assignment_title);
           setAssignmentDescription(data.assignment_description);
-          setDueDate(data.due_date?.split("T")[0] || "");
+          setDueDate(
+            data.due_date
+              ? new Date(data.due_date).toLocaleDateString("en-CA")
+              : ""
+          );
+
           setExistingFiles(data.files || []);
         }
       } catch (error) {

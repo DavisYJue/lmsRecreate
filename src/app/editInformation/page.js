@@ -126,6 +126,8 @@ export default function EditProfilePage() {
         throw new Error(result.error || "Failed to save changes");
       }
 
+      alert("Profile information updated successfully!");
+
       const role = originalData?.role || userData.role || "student";
 
       if (role === "student") {
