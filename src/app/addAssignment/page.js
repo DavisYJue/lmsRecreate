@@ -20,7 +20,7 @@ const AddAssignment = () => {
 
   const handleFileUpload = (e) => {
     const uploadedFiles = Array.from(e.target.files);
-    setFiles((prevFiles) => [...prevFiles, ...uploadedFiles]);
+    setFiles(uploadedFiles); // Replaces old files
   };
 
   // Called when user clicks the Submit button
