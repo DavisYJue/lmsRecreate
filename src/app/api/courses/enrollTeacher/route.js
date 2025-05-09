@@ -1,4 +1,3 @@
-// api/courses/enrollTeacher.js
 import { query } from "../../../../../lib/db";
 import { cookies } from "next/headers";
 
@@ -17,7 +16,6 @@ export async function POST(request) {
       );
     }
 
-    // Lookup account_id
     const [t] = await query(
       "SELECT account_id FROM teacher WHERE teacher_id = ?",
       [teacher_id]
@@ -29,7 +27,6 @@ export async function POST(request) {
       );
     }
 
-    // Insert into otherenrollment
     await query(
       `INSERT INTO otherenrollment 
          (account_id, course_id, enrollment_date, status)
@@ -37,7 +34,6 @@ export async function POST(request) {
       [t.account_id, courseId]
     );
 
-    // Return the newly enrolled teacher record
     const [newTeacher] = await query(
       `SELECT teacher_id, account_id, teacher_name, faculty
        FROM teacher

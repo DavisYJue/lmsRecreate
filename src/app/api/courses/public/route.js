@@ -2,7 +2,6 @@ import { query } from "../../../../../lib/db";
 
 export async function GET() {
   try {
-    // Query public courses from the Course table where course_type is 'public'.
     const courses = await query(
       `SELECT 
           course_id, 

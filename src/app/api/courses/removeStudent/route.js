@@ -17,7 +17,6 @@ export async function DELETE(request) {
       );
     }
 
-    // Remove enrollment
     await query(
       `DELETE FROM enrollment 
        WHERE student_id = ? AND course_id = ?`,

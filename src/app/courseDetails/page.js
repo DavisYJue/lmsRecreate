@@ -88,7 +88,7 @@ const CourseDetails = () => {
       setUploadedFiles((prev) => ({ ...prev, [assignmentTitle]: [] }));
       setShowSubmitConfirm(null);
       alert("Submit assignment successfully");
-      // Refresh the page
+
       window.location.reload();
     } catch (error) {
       console.error("Submission error:", error);
@@ -114,7 +114,7 @@ const CourseDetails = () => {
       });
       setShowUnsubmitConfirm(null);
       alert("Submission removed successfully");
-      // Refresh the page
+
       window.location.reload();
     } catch (error) {
       console.error("Unsubmit error:", error);
@@ -424,7 +424,6 @@ const CourseDetails = () => {
       <div className="mt-auto p-4 flex justify-center w-full">
         <Button
           onClick={() => {
-            // Get role from user data with proper fallback
             const userRole = courseData?.user?.role?.toLowerCase() || "student";
             router.push(
               userRole === "student" ? "/lmsMainPageStudent" : "/lmsMainPage"

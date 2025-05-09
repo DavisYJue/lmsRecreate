@@ -93,16 +93,13 @@ export async function PUT(request) {
     bb.end();
     await processing;
 
-    // Handle profile picture upload
     let profileImage = null;
     if (files.profilePicture) {
-      // Get old image path
       const [oldUser] = await query(
         "SELECT profile_image FROM Account WHERE account_id = ?",
         [session.account_id]
       );
 
-      // Delete old image if it's not the default
       if (
         oldUser?.profile_image &&
         !oldUser.profile_image.includes("defaultProfile")
@@ -115,14 +112,12 @@ export async function PUT(request) {
         if (fs.existsSync(oldPath)) await fs.promises.unlink(oldPath);
       }
 
-      // Upload new image
       profileImage = await uploadProfileImage(
         files.profilePicture.buffer,
         files.profilePicture.filename
       );
     }
 
-    // Build update fields
     const updateFields = [];
     const params = [];
 

@@ -100,7 +100,6 @@ export default function EditProfilePage() {
     try {
       const formData = new FormData();
 
-      // Append all fields
       formData.append("username", userData.username);
       formData.append("email", userData.email);
       formData.append("telephone", userData.telephone);
@@ -135,7 +134,7 @@ export default function EditProfilePage() {
       } else if (role === "administrator") {
         router.push("/lmsMainPageAdmin");
       } else {
-        router.push("/lmsMainPage"); // teacher or assistant
+        router.push("/lmsMainPage");
       }
     } catch (error) {
       console.error("Update error:", error);
@@ -164,7 +163,7 @@ export default function EditProfilePage() {
       } else if (role === "administrator") {
         router.push("/lmsMainPageAdmin");
       } else {
-        router.push("/lmsMainPage"); // teacher or assistant
+        router.push("/lmsMainPage");
       }
     }
   };
@@ -183,7 +182,7 @@ export default function EditProfilePage() {
     } else if (role === "administrator") {
       router.push("/lmsMainPageAdmin");
     } else {
-      router.push("/lmsMainPage"); // teacher or assistant
+      router.push("/lmsMainPage");
     }
   };
 

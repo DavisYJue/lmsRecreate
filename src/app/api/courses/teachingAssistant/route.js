@@ -1,4 +1,3 @@
-// pages/api/teachingAssistant/route.js
 import { query } from "../../../../../lib/db";
 import { cookies } from "next/headers";
 

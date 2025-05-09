@@ -59,7 +59,6 @@ export default function LmsMainPageStudent() {
     return courses.filter((course) => {
       if (filter === "all") return true;
 
-      // Parse course dates from dateRange string if needed
       const [startStr, endStr] = course.dateRange.split(" - ");
       const startDate = new Date(startStr);
       const endDate = new Date(endStr);
@@ -114,13 +113,11 @@ export default function LmsMainPageStudent() {
     outdated: courses.filter((c) => c.status === "outdated").length,
   });
 
-  // Add to component state
   const [courseCounts, setCourseCounts] = useState({
     yourCourses: { all: 0, ongoing: 0, completed: 0, outdated: 0 },
     publicCourses: { all: 0, ongoing: 0, completed: 0, outdated: 0 },
   });
 
-  // Update after fetching data
   useEffect(() => {
     if (yourCourses.length > 0 || publicCourses.length > 0) {
       setCourseCounts({

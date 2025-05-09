@@ -1,4 +1,3 @@
-// api/courses/enrollAssistant.js
 import { query } from "../../../../../lib/db";
 import { cookies } from "next/headers";
 
@@ -17,7 +16,6 @@ export async function POST(request) {
       );
     }
 
-    // Lookup account_id
     const [a] = await query(
       "SELECT account_id FROM assistant WHERE assistant_id = ?",
       [assistant_id]
@@ -29,7 +27,6 @@ export async function POST(request) {
       );
     }
 
-    // Insert into otherenrollment
     await query(
       `INSERT INTO otherenrollment 
          (account_id, course_id, enrollment_date, status)
@@ -37,7 +34,6 @@ export async function POST(request) {
       [a.account_id, courseId]
     );
 
-    // Return the newly enrolled assistant record
     const [newAssistant] = await query(
       `SELECT assistant_id, account_id, assistant_name, department
        FROM assistant

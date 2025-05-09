@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 export async function POST(request) {
   try {
     const cookieStore = await cookies();
-    const session = JSON.parse(cookieStore.get("session")?.value || {});
+    const session = JSON.parse(cookieStore.get("session")?.value || "{}");
 
     if (!session.account_id) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -15,20 +15,27 @@ export async function POST(request) {
       });
     }
 
-    // Check user role
-    const [student, teacher] = await Promise.all([
+    const [student, teacher, assistant, admin] = await Promise.all([
       query(`SELECT student_id FROM student WHERE account_id = ?`, [
         session.account_id,
       ]),
       query(`SELECT teacher_id FROM teacher WHERE account_id = ?`, [
         session.account_id,
       ]),
+      query(`SELECT assistant_id FROM assistant WHERE account_id = ?`, [
+        session.account_id,
+      ]),
+      query(`SELECT account_id FROM account WHERE account_id = ?`, [
+        session.account_id,
+      ]),
     ]);
 
     const isStudent = student.length > 0;
     const isTeacher = teacher.length > 0;
+    const isAssistant = assistant.length > 0;
+    const isAdmin = admin.length > 0;
 
-    if (!isStudent && !isTeacher) {
+    if (!isStudent && !isTeacher && !isAssistant && !isAdmin) {
       return new Response(JSON.stringify({ error: "User role not found" }), {
         status: 403,
         headers: { "Content-Type": "application/json" },
@@ -57,7 +64,6 @@ export async function POST(request) {
       const buffer = await file.arrayBuffer();
       const filename = `${Date.now()}-${file.name}`;
 
-      // Determine storage path based on role
       const roleSubdir = isStudent ? "student" : "other";
       const filePath = join(uploadDir, roleSubdir, filename);
 

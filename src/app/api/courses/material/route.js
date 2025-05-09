@@ -8,7 +8,6 @@ import { PassThrough } from "stream";
 
 const materialsDir = path.join(process.cwd(), "public", "materials");
 
-// Ensure materials directory exists
 if (!fs.existsSync(materialsDir)) {
   fs.mkdirSync(materialsDir, { recursive: true });
 }
@@ -21,7 +20,6 @@ export async function GET() {
     return NextResponse.json({ error: "No course selected." }, { status: 400 });
   }
 
-  // Get course details
   const courseResults = await query(
     "SELECT course_title, course_description FROM course WHERE course_id = ?",
     [courseId]
@@ -32,7 +30,6 @@ export async function GET() {
   }
   const courseData = courseResults[0];
 
-  // Get materials
   const materialResults = await query(
     "SELECT * FROM material WHERE course_id = ?",
     [courseId]
@@ -74,7 +71,6 @@ export async function POST(req) {
     let filePath = "";
     let fileName = "";
 
-    // Handle Busboy events
     busboy.on("field", (name, value) => {
       if (name === "title") title = value;
     });
@@ -116,7 +112,6 @@ export async function POST(req) {
       }
     });
 
-    // Pipe the request body through Busboy
     const reader = body.getReader();
     while (true) {
       const { done, value } = await reader.read();
@@ -218,7 +213,6 @@ export async function PATCH(req) {
     let filePath = "";
     let fileName = "";
 
-    // Handle Busboy events
     busboy.on("field", (name, value) => {
       if (name === "material_id") materialId = value;
     });
@@ -243,13 +237,11 @@ export async function PATCH(req) {
             return reject(new Error("Missing material ID"));
           }
 
-          // Get old file path
           const [oldFile] = await query(
             "SELECT material_file FROM material WHERE material_id = ?",
             [materialId]
           );
 
-          // Delete old file if exists
           if (oldFile?.material_file) {
             const oldPath = path.join(
               process.cwd(),
@@ -261,7 +253,6 @@ export async function PATCH(req) {
             }
           }
 
-          // Update database with new file path
           await query(
             "UPDATE material SET material_file = ? WHERE material_id = ?",
             [filePath, materialId]
@@ -278,7 +269,6 @@ export async function PATCH(req) {
       });
     });
 
-    // Pipe the request body
     const reader = req.body.getReader();
     try {
       while (true) {
@@ -295,7 +285,6 @@ export async function PATCH(req) {
       );
     }
 
-    // Wait for processing to complete
     const result = await processPromise;
     return NextResponse.json(result);
   } catch (error) {

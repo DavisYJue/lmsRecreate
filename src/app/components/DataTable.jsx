@@ -1,7 +1,6 @@
 import Button from "./Button";
 
 const DataTable = ({ data, searchQuery, onRemove, entityType }) => {
-  // Get field names based on entity type
   const fields = {
     Student: { name: "student_name", id: "student_id", extra: "class" },
     Teacher: { name: "teacher_name", id: "teacher_id", extra: "faculty" },
@@ -18,7 +17,7 @@ const DataTable = ({ data, searchQuery, onRemove, entityType }) => {
         <tr className="bg-gray-200">
           <th className="border border-gray-300 p-2">Name</th>
           <th className="border border-gray-300 p-2">
-            {entityType === "Student" ? "Student ID" : "Assistant ID"}
+            {entityType === "Student" ? "Student ID" : "Identity ID"}
           </th>
           <th className="border border-gray-300 p-2">
             {entityType === "Assistant"

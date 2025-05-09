@@ -24,7 +24,6 @@ export async function GET() {
       });
     }
 
-    // Fetch existing files
     const existingFiles = await query(
       "SELECT file_path FROM assignment_material WHERE assignment_id = ?",
       [assignmentId]
@@ -34,7 +33,7 @@ export async function GET() {
       JSON.stringify({
         ...assignment,
         due_date: assignment.due_date
-          ? assignment.due_date.toLocaleDateString("en-CA") // Outputs YYYY-MM-DD
+          ? assignment.due_date.toLocaleDateString("en-CA")
           : null,
 
         files: existingFiles.map((file) => file.file_path),

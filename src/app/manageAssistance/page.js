@@ -30,7 +30,6 @@ const ManageAssistance = () => {
         fetch("/api/courses/availableAssistants"),
       ]);
 
-      // Handle responses separately
       if (!assistantsRes.ok) {
         throw new Error(`Assistants fetch failed: ${assistantsRes.statusText}`);
       }
@@ -43,7 +42,6 @@ const ManageAssistance = () => {
       const assistantsData = await assistantsRes.json();
       const availableData = await availableRes.json();
 
-      // Update the mapping for assistants and availableAssistants
       setAssistants(
         assistantsData.map((a) => ({
           assistant_name: a.assistant_name,

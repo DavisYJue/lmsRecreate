@@ -6,7 +6,7 @@ const Button = ({
   text,
   className = "",
   disabled = false,
-  type = "button", // 🛠️ Default to "button" to prevent unintended submits
+  type = "button",
 }) => {
   return (
     <button

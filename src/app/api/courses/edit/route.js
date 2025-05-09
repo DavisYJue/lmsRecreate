@@ -1,4 +1,3 @@
-// app/api/courses/edit/route.js
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { query } from "../../../../../lib/db";
@@ -23,7 +22,6 @@ const uploadFile = async (fileBuffer, fileName) => {
 };
 
 export async function PUT(request) {
-  // Retrieve cookies directly within the async PUT handler
   const cookieStore = await cookies();
   const courseId = cookieStore.get("selectedCourseId")?.value;
 
@@ -78,7 +76,6 @@ export async function PUT(request) {
     bb.end();
     await processing;
 
-    // Validate required fields
     if (!fields.title || !fields.startDate || !fields.endDate) {
       return NextResponse.json(
         { message: "Missing required fields" },
@@ -86,10 +83,8 @@ export async function PUT(request) {
       );
     }
 
-    // Handle image upload
     let imageUrl = null;
     if (files.image) {
-      // Delete old image
       const [oldImage] = await query(
         "SELECT course_image FROM course WHERE course_id = ?",
         [courseId]
@@ -103,11 +98,9 @@ export async function PUT(request) {
         if (fs.existsSync(oldPath)) await fs.promises.unlink(oldPath);
       }
 
-      // Upload new image
       imageUrl = await uploadFile(files.image.buffer, files.image.filename);
     }
 
-    // Update course data
     const result = await query(
       `UPDATE course SET
         course_title = ?,

@@ -15,17 +15,26 @@ export async function POST(request) {
       });
     }
 
-    // Check user role
-    const [student, teacher] = await Promise.all([
+    const [student, teacher, assistant, admin] = await Promise.all([
       query(`SELECT student_id FROM student WHERE account_id = ?`, [
         session.account_id,
       ]),
       query(`SELECT teacher_id FROM teacher WHERE account_id = ?`, [
         session.account_id,
       ]),
+      query(`SELECT assistant_id FROM assistant WHERE account_id = ?`, [
+        session.account_id,
+      ]),
+      query(`SELECT account_id FROM account WHERE account_id = ?`, [
+        session.account_id,
+      ]),
     ]);
 
     const isStudent = student.length > 0;
+    const isOther =
+      !isStudent &&
+      (teacher.length > 0 || assistant.length > 0 || admin.length > 0);
+
     const { assignmentId } = await request.json();
 
     let submission;
@@ -35,7 +44,7 @@ export async function POST(request) {
          WHERE assignment_id = ? AND student_id = ?`,
         [assignmentId, student[0].student_id]
       );
-    } else {
+    } else if (isOther) {
       [submission] = await query(
         `SELECT * FROM OtherSubmission 
          WHERE assignment_id = ? AND account_id = ?`,
@@ -50,7 +59,7 @@ export async function POST(request) {
     }
 
     const filePaths = submission.file_path.split(",");
-    // Inside the file deletion loop
+
     for (const filePath of filePaths) {
       try {
         const fullPath = join(process.cwd(), "public", filePath);
@@ -66,7 +75,7 @@ export async function POST(request) {
          WHERE submission_id = ?`,
         [submission.submission_id]
       );
-    } else {
+    } else if (isOther) {
       await query(
         `DELETE FROM OtherSubmission 
          WHERE submission_id = ?`,

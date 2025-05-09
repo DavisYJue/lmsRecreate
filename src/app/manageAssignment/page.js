@@ -150,7 +150,7 @@ const ManageAssignments = () => {
         setAssignments((prev) =>
           prev.filter((a) => a.assignmentId !== selectedAssignmentId)
         );
-        alert("Assignment deleted successfully!"); // ← success alert
+        alert("Assignment deleted successfully!");
       } else {
         alert(result.error || "Failed to delete assignment");
       }

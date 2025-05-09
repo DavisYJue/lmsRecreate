@@ -12,8 +12,6 @@ const EditCourse = () => {
   const [formError, setFormError] = useState("");
   const [courseData, setCourseData] = useState(null);
   const [confirmModal, setConfirmModal] = useState({ show: false, type: null });
-
-  // Form states
   const [courseTitle, setCourseTitle] = useState("");
   const [courseDescription, setCourseDescription] = useState("");
   const [courseImage, setCourseImage] = useState(null);
@@ -66,7 +64,6 @@ const EditCourse = () => {
     const currentStart = formatDate(startDate);
     const currentEnd = formatDate(endDate);
 
-    // Check if any data is changed
     const imageChanged =
       (courseImage && courseImage !== courseData.course_image) ||
       (previewImage && previewImage !== courseData.course_image);
@@ -117,7 +114,6 @@ const EditCourse = () => {
     if (hasChanges()) {
       setConfirmModal({ show: true, type: "save" });
     } else {
-      // No changes detected, proceed with the update without confirmation
       handleUpdateConfirm();
     }
   };

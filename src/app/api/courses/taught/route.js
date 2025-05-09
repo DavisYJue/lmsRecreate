@@ -23,7 +23,6 @@ export async function GET() {
 `;
       courses = await query(sql, [account_id]);
     } else if (role === "assistant") {
-      // find your assistant_id
       const assistantSql = `SELECT assistant_id FROM assistant WHERE account_id = ?`;
       const assistantResult = await query(assistantSql, [account_id]);
 
@@ -36,7 +35,6 @@ export async function GET() {
 
       const assistant_id = assistantResult[0].assistant_id;
 
-      // join teaching_assistant instead of assistant_course
       const sql = `
         SELECT c.course_id, c.course_title, c.course_description
         FROM course c

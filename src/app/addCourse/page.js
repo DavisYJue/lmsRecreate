@@ -16,8 +16,6 @@ const AddCourse = () => {
   const [endDate, setEndDate] = useState("");
   const [courseVisibility, setCourseVisibility] = useState("public");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Confirmation popup state
   const [showConfirm, setShowConfirm] = useState(false);
 
   const handleFileChange = (e) => {
@@ -35,10 +33,9 @@ const AddCourse = () => {
     setCourseImage(file);
   };
 
-  // Called when user clicks "Add Course"
   const handlePrepareSubmit = (e) => {
     e.preventDefault();
-    // Basic validation before showing confirmation
+
     const start = new Date(startDate);
     const end = new Date(endDate);
     if (startDate === "" || endDate === "") {
@@ -52,7 +49,6 @@ const AddCourse = () => {
     setShowConfirm(true);
   };
 
-  // Actual submission logic
   const handleSubmit = async () => {
     setShowConfirm(false);
     setIsSubmitting(true);
@@ -86,7 +82,6 @@ const AddCourse = () => {
     }
   };
 
-  // Form validity
   const isFormValid =
     courseTitle.trim() !== "" &&
     courseDescription.trim() !== "" &&
@@ -109,7 +104,6 @@ const AddCourse = () => {
         </h2>
 
         <form className="space-y-4" onSubmit={handlePrepareSubmit}>
-          {/* Course Title */}
           <div>
             <label className="block text-gray-700 font-semibold">
               Course Title *
@@ -124,7 +118,6 @@ const AddCourse = () => {
             />
           </div>
 
-          {/* Course Description */}
           <div>
             <label className="block text-gray-700 font-semibold">
               Course Description *
@@ -138,7 +131,6 @@ const AddCourse = () => {
             />
           </div>
 
-          {/* Course Image */}
           <div>
             <label className="block text-gray-700 font-semibold">
               Course Image
@@ -154,7 +146,6 @@ const AddCourse = () => {
             </p>
           </div>
 
-          {/* Course Duration */}
           <div>
             <label className="block text-gray-700 font-semibold">
               Course Duration *
@@ -183,7 +174,6 @@ const AddCourse = () => {
             </div>
           </div>
 
-          {/* Course Visibility */}
           <div>
             <label className="block text-gray-700 font-semibold">
               Course Visibility *
@@ -212,7 +202,6 @@ const AddCourse = () => {
             </div>
           </div>
 
-          {/* Form Actions */}
           <div className="mt-6 flex gap-2 justify-end">
             <Button
               type="submit"

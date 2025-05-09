@@ -36,7 +36,7 @@ export async function DELETE(request) {
 
       case "Teacher":
         const [teacher] = await query(
-          "SELECT teacher_id FROM teacher WHERE account_id = ?", // Correct table name 'teacher'
+          "SELECT teacher_id FROM teacher WHERE account_id = ?",
           [accountId]
         );
         if (!teacher) throw new Error("Teacher not found");
@@ -53,7 +53,7 @@ export async function DELETE(request) {
 
       case "Assistant":
         const [assistant] = await query(
-          "SELECT assistant_id FROM assistant WHERE account_id = ?", // Correct table name 'assistant'
+          "SELECT assistant_id FROM assistant WHERE account_id = ?",
           [accountId]
         );
         if (!assistant) throw new Error("Assistant not found");

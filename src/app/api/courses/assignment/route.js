@@ -21,7 +21,6 @@ export async function GET() {
 
     const data = await Promise.all(
       assignments.map(async (a) => {
-        // Student submissions with real names
         const studentSubs = await query(
           `SELECT
             s.submission_id,
@@ -38,7 +37,6 @@ export async function GET() {
           [a.assignment_id]
         );
 
-        // Teacher/assistant submissions with real names
         const otherSubs = await query(
           `SELECT
             s.submission_id,
@@ -57,7 +55,6 @@ export async function GET() {
           [a.assignment_id]
         );
 
-        // Participants who haven't submitted
         const notSubmitted = await query(
           `SELECT 
             s.student_name AS name
@@ -89,7 +86,7 @@ export async function GET() {
           assignment_id: a.assignment_id,
           title: a.assignment_title,
           max_grade: a.max_grade,
-          due_date: a.due_date, // ✅ Add this line
+          due_date: a.due_date,
           submissions: [...studentSubs, ...otherSubs].map((s) => ({
             submission_id: s.submission_id,
             submitter: s.submitter,
@@ -112,7 +109,6 @@ export async function GET() {
   }
 }
 
-// src/app/api/courses/assignment/route.js
 export async function PUT(req) {
   try {
     const { submission_id, new_grade, role } = await req.json();
@@ -132,7 +128,6 @@ export async function PUT(req) {
       );
     }
 
-    // Whitelist tables to prevent SQL injection
     const allowedTables = {
       student: { table: "submission", audit: "grade_audit" },
       other: { table: "othersubmission", audit: "grade_audit_othersubmission" },
@@ -141,7 +136,6 @@ export async function PUT(req) {
     const isStudent = role === "student";
     const tableInfo = isStudent ? allowedTables.student : allowedTables.other;
 
-    // Fetch existing grade
     const [existing] = await query(
       `SELECT grade FROM ${tableInfo.table} WHERE submission_id = ?`,
       [submission_id]
@@ -153,7 +147,6 @@ export async function PUT(req) {
     const old_grade = existing.grade;
     const gradeToSet = new_grade === "" ? null : new_grade;
 
-    // Update grade
     await query(
       `UPDATE ${tableInfo.table}
            SET grade = ?, graded_by = ?
@@ -161,7 +154,6 @@ export async function PUT(req) {
       [gradeToSet, graderId, submission_id]
     );
 
-    // Insert into audit log
     await query(
       `INSERT INTO ${tableInfo.audit}
            (submission_id, old_grade, new_grade, changed_by, change_date)

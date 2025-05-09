@@ -46,7 +46,6 @@ const ManageMainPageAssistant = () => {
       courses.filter((course) => course.course_id !== selectedCourseId)
     );
     setIsConfirmPopupOpen(false);
-    // optional: call API to delete from database too
   };
 
   const handleAddCourse = () => {
@@ -95,7 +94,6 @@ const ManageMainPageAssistant = () => {
       if (!response.ok) throw new Error("Failed to set course");
       sessionStorage.setItem("selectedCourseId", courseId);
 
-      // Store the selected course data in state
       setSelectedCourseData(courseData);
       setIsPopupOpen(true);
     } catch (error) {
@@ -145,7 +143,6 @@ const ManageMainPageAssistant = () => {
         </ul>
       </main>
 
-      {/* Manage Options Popup */}
       {isPopupOpen && (
         <div className="fixed inset-0 bg-opacity-30 backdrop-blur-md flex justify-center items-center">
           <div className="bg-white border-3 px-6 py-3 rounded-lg shadow-lg w-115 h-65 text-center">
@@ -178,7 +175,6 @@ const ManageMainPageAssistant = () => {
         </div>
       )}
 
-      {/* Confirmation Popup */}
       {isConfirmPopupOpen && (
         <ConfirmationPopup
           title="Confirm Deletion"
@@ -188,7 +184,6 @@ const ManageMainPageAssistant = () => {
         />
       )}
 
-      {/* Back Button */}
       <div className="flex justify-center">
         <Button
           text="Back"

@@ -37,9 +37,9 @@ const ManageMainPage = () => {
   }, []);
 
   const confirmDeleteCourse = (course) => {
-    setSelectedCourseId(course.course_id); // Store the course ID in the state
-    setSelectedCourseData(course); // Optionally store the course data if needed
-    setIsConfirmPopupOpen(true); // Open the confirmation popup
+    setSelectedCourseId(course.course_id);
+    setSelectedCourseData(course);
+    setIsConfirmPopupOpen(true);
   };
 
   const handleDeleteCourse = async () => {
@@ -105,7 +105,6 @@ const ManageMainPage = () => {
       if (!response.ok) throw new Error("Failed to set course");
       sessionStorage.setItem("selectedCourseId", courseId);
 
-      // Store the selected course data in state
       setSelectedCourseData(courseData);
       setIsPopupOpen(true);
     } catch (error) {
@@ -155,7 +154,7 @@ const ManageMainPage = () => {
                     className="px-3 py-1 text-slate-950 bg-blue-300 hover:bg-indigo-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-indigo-950 active:text-white active:border-indigo-400"
                   />
                   <Button
-                    onClick={() => confirmDeleteCourse(course)} // Pass the entire course object
+                    onClick={() => confirmDeleteCourse(course)}
                     text="Delete"
                     className="px-3 py-1 text-slate-950 bg-red-300 hover:bg-rose-400 hover:border-slate-900 hover:text-slate-950 transition active:bg-pink-800 active:text-white active:border-rose-400"
                   />
@@ -173,7 +172,6 @@ const ManageMainPage = () => {
         </ul>
       </main>
 
-      {/* Manage Options Popup */}
       {isPopupOpen && (
         <div className="fixed inset-0 bg-opacity-30 backdrop-blur-md flex justify-center items-center">
           <div className="bg-white border-3 px-6 py-3 rounded-lg shadow-lg w-115 h-90 text-center">
@@ -220,7 +218,6 @@ const ManageMainPage = () => {
         </div>
       )}
 
-      {/* Confirmation Popup */}
       {isConfirmPopupOpen && (
         <ConfirmationPopup
           title="Confirm Deletion"

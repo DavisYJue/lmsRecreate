@@ -20,7 +20,6 @@ export async function GET() {
       return Response.json({ error: "No course selected" }, { status: 400 });
     }
 
-    // Get base course data
     const [course] = await query(`SELECT * FROM course WHERE course_id = ?`, [
       courseId,
     ]);
@@ -29,7 +28,6 @@ export async function GET() {
       return Response.json({ error: "Course not found" }, { status: 404 });
     }
 
-    // Get assignments and materials
     const assignments = await query(
       `SELECT * FROM assignment WHERE course_id = ?`,
       [courseId]
@@ -39,7 +37,6 @@ export async function GET() {
       [courseId]
     );
 
-    // Get user data
     const [user] = await query(
       `SELECT account_id, username, email, telephone, address, bio, role
        FROM Account 
@@ -47,25 +44,20 @@ export async function GET() {
       [accountId]
     );
 
-    // Check if user is student or teacher
     const [student] = await query(
       `SELECT student_id FROM student WHERE account_id = ?`,
       [accountId]
     );
     const isStudent = !!student?.student_id;
 
-    // Process assignments
     for (const assignment of assignments) {
-      // Get assignment materials
       const files = await query(
         `SELECT * FROM assignment_material WHERE assignment_id = ?`,
         [assignment.assignment_id]
       );
       assignment.materials = files;
 
-      // Get submission based on role
       if (isStudent) {
-        // Student submission
         const [submission] = await query(
           `SELECT * FROM submission 
            WHERE assignment_id = ? AND student_id = ?`,
@@ -73,7 +65,6 @@ export async function GET() {
         );
         assignment.submission = submission || null;
       } else {
-        // Teacher/non-student submission
         const [submission] = await query(
           `SELECT * FROM OtherSubmission 
            WHERE assignment_id = ? AND account_id = ?`,

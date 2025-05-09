@@ -75,7 +75,6 @@ export async function POST(req) {
       busboy.end();
     });
 
-    // Validate required fields
     const { assignment_title, assignment_description, due_date } = fields;
     if (!assignment_title || !assignment_description || !due_date) {
       newFiles.forEach(
@@ -88,7 +87,6 @@ export async function POST(req) {
       );
     }
 
-    // Only delete existing files if new files are being uploaded
     if (!keepExistingFiles) {
       const existingFiles = await query(
         "SELECT file_path FROM assignment_material WHERE assignment_id = ?",
@@ -104,7 +102,6 @@ export async function POST(req) {
       ]);
     }
 
-    // Update assignment
     await query(
       `UPDATE assignment SET
         assignment_title = ?, assignment_description = ?, due_date = ?, updated_at = NOW()
@@ -112,7 +109,6 @@ export async function POST(req) {
       [assignment_title, assignment_description, due_date, assignmentId]
     );
 
-    // Insert new files if any
     if (newFiles.length > 0) {
       for (const file of newFiles) {
         await query(

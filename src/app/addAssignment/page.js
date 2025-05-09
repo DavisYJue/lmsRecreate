@@ -14,23 +14,19 @@ const AddAssignment = () => {
   const [dueDate, setDueDate] = useState("");
   const [files, setFiles] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Confirmation popup state
   const [showConfirm, setShowConfirm] = useState(false);
 
   const handleFileUpload = (e) => {
     const uploadedFiles = Array.from(e.target.files);
-    setFiles(uploadedFiles); // Replaces old files
+    setFiles(uploadedFiles);
   };
 
-  // Called when user clicks the Submit button
   const handlePrepareSubmit = () => {
     if (assignmentTitle && assignmentDescription && dueDate && files.length) {
       setShowConfirm(true);
     }
   };
 
-  // Actual submission logic
   const handleSubmit = async () => {
     setShowConfirm(false);
     setIsSubmitting(true);

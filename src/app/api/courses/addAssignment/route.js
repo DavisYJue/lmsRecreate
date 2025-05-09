@@ -7,7 +7,6 @@ import Busboy from "busboy";
 import { Readable } from "stream";
 import { query } from "../../../../../lib/db";
 
-// Disable Next’s default body parser
 export const config = {
   api: {
     bodyParser: false,
@@ -25,23 +24,19 @@ export async function POST(req) {
       );
     }
 
-    // Prepare upload directory
     const uploadDir = path.join(process.cwd(), "public/courseMaterials");
     await fs.mkdir(uploadDir, { recursive: true });
 
-    // Create Busboy instance
     const contentType = req.headers.get("content-type") || "";
     const bb = Busboy({ headers: { "content-type": contentType } });
 
     const fields = {};
     const filePaths = [];
-    let fileIndex = 0; // for naming
+    let fileIndex = 0;
 
-    // Convert Web ReadableStream -> Node Readable and pipe into Busboy
     const nodeStream = Readable.fromWeb(req.body);
     nodeStream.pipe(bb);
 
-    // Collect fields and files
     await new Promise((resolve, reject) => {
       bb.on("field", (name, val) => {
         fields[name] = val;
@@ -54,11 +49,9 @@ export async function POST(req) {
         const newFilename = `${timestamp}-${fileIndex}${originalExt}`;
         const saveTo = path.join(uploadDir, newFilename);
 
-        // write file
         const out = fsSync.createWriteStream(saveTo);
         fileStream.pipe(out);
 
-        // track for DB insert
         filePaths.push(`/courseMaterials/${newFilename}`);
       });
 
@@ -79,7 +72,6 @@ export async function POST(req) {
       );
     }
 
-    // Lookup teacher_id
     const [courseRow] = await query(
       "SELECT teacher_id FROM course WHERE course_id = ?",
       [courseId]
@@ -89,7 +81,6 @@ export async function POST(req) {
     }
     const teacherId = courseRow.teacher_id;
 
-    // Insert assignment
     const result = await query(
       `INSERT INTO assignment
         (assignment_title, assignment_description, max_grade, due_date, course_id, teacher_id, created_at, updated_at)
@@ -98,7 +89,6 @@ export async function POST(req) {
     );
     const assignmentId = result.insertId;
 
-    // Insert materials records
     for (const filePath of filePaths) {
       await query(
         `INSERT INTO assignment_material (assignment_id, file_path, course_id)

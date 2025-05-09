@@ -6,7 +6,6 @@ export async function POST(request) {
   try {
     const { courseId } = await request.json();
 
-    // Verify course exists
     const course = await query(
       "SELECT course_id FROM course WHERE course_id = ?",
       [courseId]
@@ -19,7 +18,6 @@ export async function POST(request) {
       );
     }
 
-    // Set cookie for 1 hour
     const cookieStore = await cookies();
     cookieStore.set("selectedCourseId", courseId, {
       httpOnly: true,

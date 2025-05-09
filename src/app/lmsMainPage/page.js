@@ -11,7 +11,7 @@ import EmptyState from "../components/EmptyState";
 export default function LmsMainPage() {
   const [filter, setFilter] = useState("all");
   const [username, setUsername] = useState("");
-  const [role, setRole] = useState(""); // ← new
+  const [role, setRole] = useState("");
   const [yourCourses, setYourCourses] = useState([]);
   const [publicCourses, setPublicCourses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,7 +27,7 @@ export default function LmsMainPage() {
       if (!userRes.ok) throw new Error("Failed to fetch user");
       const user = await userRes.json();
       setUsername(user.username);
-      setRole(user.role); // ← new
+      setRole(user.role);
 
       const enrolledRes = await fetch("/api/courses/enrolled");
       if (!enrolledRes.ok) throw new Error("Failed to fetch enrolled courses");
@@ -57,15 +57,12 @@ export default function LmsMainPage() {
     }
   };
 
-  // new handler for the Manage Courses button
   const handleManageCourses = () => {
     if (role === "assistant") {
       router.push("/manageMainPageAssistant");
     } else if (role !== "student") {
-      // teachers and administrators
       router.push("/manageMainPage");
     }
-    // if role === "student", do nothing (or you could hide the button entirely)
   };
 
   const filterCourses = (courses) => {

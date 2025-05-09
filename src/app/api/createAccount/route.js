@@ -54,7 +54,6 @@ export async function POST(request) {
     bb.end();
     await parsing;
 
-    // Extract form data
     const username = (fields.username || "").trim();
     const email = (fields.email || "").trim();
     const role = (fields.role || "").trim();
@@ -63,7 +62,6 @@ export async function POST(request) {
     const address = (fields.address || "").trim() || null;
     const bio = (fields.bio || "").trim() || null;
 
-    // Validate required fields
     if (!username || !email || !role || !password) {
       return NextResponse.json(
         { message: "Missing required fields" },
@@ -78,7 +76,6 @@ export async function POST(request) {
       );
     }
 
-    // Validate role-specific fields
     const studentName = fields.studentName?.trim();
     const className = fields.className?.trim();
     const teacherName = fields.teacherName?.trim();
@@ -105,7 +102,6 @@ export async function POST(request) {
       );
     }
 
-    // Handle profile image
     let profileImagePath = null;
     if (fileUpload && fileUpload.buffer.length) {
       profileImagePath = await saveProfileImage(
@@ -114,7 +110,6 @@ export async function POST(request) {
       );
     }
 
-    // Create account
     const accountResult = await query(
       `INSERT INTO account 
        (username, email, telephone, address, bio, role, password, profile_image, created_at)
@@ -132,7 +127,6 @@ export async function POST(request) {
     );
     const accountId = accountResult.insertId;
 
-    // Create role-specific entry
     switch (role) {
       case "student":
         await query(
@@ -155,7 +149,6 @@ export async function POST(request) {
           [assistantName, department, accountId]
         );
         break;
-      // Administrator doesn't need a separate entry
     }
 
     return NextResponse.json({ message: "Account created successfully" });

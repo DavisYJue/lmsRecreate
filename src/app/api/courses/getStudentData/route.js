@@ -4,7 +4,6 @@ import { query } from "../../../../../lib/db";
 
 export async function GET() {
   try {
-    // Get courseId from cookies
     const cookieStore = await cookies();
     const courseId = cookieStore.get("selectedCourseId")?.value;
 
@@ -15,7 +14,6 @@ export async function GET() {
       );
     }
 
-    // Query to get student and enrollment data
     const studentData = await query(
       `
       SELECT 

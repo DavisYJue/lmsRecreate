@@ -16,11 +16,10 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Check for re-login error in URL
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("error") === "relogin") {
       setError("Please Re-Login");
-      // Clear the error from URL
+
       window.history.replaceState(null, "", window.location.pathname);
     }
   }, []);
@@ -46,7 +45,6 @@ export default function LoginPage() {
         }),
       });
 
-      // Check content type before parsing
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         throw new Error("Invalid server response");
@@ -72,7 +70,7 @@ export default function LoginPage() {
           redirectPath = "/lmsMainPageAdmin";
           break;
         default:
-          redirectPath = "/"; // fallback in case of unknown role
+          redirectPath = "/";
       }
 
       router.push(redirectPath);

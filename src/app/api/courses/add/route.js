@@ -6,7 +6,6 @@ import fs from "fs";
 
 export async function POST(request) {
   try {
-    // Get session from cookies
     const cookieStore = await cookies();
     const session = JSON.parse(cookieStore.get("session")?.value || "{}");
 
@@ -17,7 +16,6 @@ export async function POST(request) {
       });
     }
 
-    // Check user role
     const [teacher] = await query(
       `SELECT teacher_id FROM teacher WHERE account_id = ?`,
       [session.account_id]
@@ -30,7 +28,6 @@ export async function POST(request) {
       });
     }
 
-    // Parse form data
     const formData = await request.formData();
     const courseTitle = formData.get("courseTitle");
     const courseDescription = formData.get("courseDescription");
@@ -38,37 +35,29 @@ export async function POST(request) {
     const startDate = formData.get("startDate");
     const endDate = formData.get("endDate");
     const courseImage = formData.get("courseImage");
+    let imagePath = null;
 
-    let imagePath = null; // Will remain null if no image is uploaded
-
-    // Only process image if provided
     if (courseImage && courseImage.size > 0) {
-      // Ensure upload directory exists
       const uploadDir = join(process.cwd(), "public", "courses");
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
 
-      // Build timestamp-indexed filename
       const imageExt = extname(courseImage.name);
       const timestamp = Date.now();
-      const imageName = `${timestamp}-1${imageExt}`; // e.g. "1745952314236-1.jpg"
+      const imageName = `${timestamp}-1${imageExt}`;
       const filePath = join(uploadDir, imageName);
 
-      // Write file to server
       const buffer = await courseImage.arrayBuffer();
       await writeFile(filePath, Buffer.from(buffer));
 
-      // Store relative path for DB
       imagePath = `courses/${imageName}`;
     }
 
-    // Calculate duration in days
     const start = new Date(startDate);
     const end = new Date(endDate);
     const courseDuration = Math.ceil((end - start) / (1000 * 3600 * 24));
 
-    // Insert into database
     const sql = `
       INSERT INTO course (
         course_title,
@@ -87,7 +76,7 @@ export async function POST(request) {
     const params = [
       courseTitle,
       courseDescription,
-      imagePath, // null if no image, or "courses/<timestamp>-1.ext"
+      imagePath,
       courseVisibility,
       startDate,
       endDate,

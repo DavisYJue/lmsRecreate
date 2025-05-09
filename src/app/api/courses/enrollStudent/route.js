@@ -1,4 +1,3 @@
-// api/courses/enrollStudent
 import { query } from "../../../../../lib/db";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -16,7 +15,6 @@ export async function POST(request) {
       );
     }
 
-    // 1. lookup student_id
     const [stu] = await query(
       "SELECT student_id FROM student WHERE account_id = ?",
       [accountId]
@@ -28,7 +26,6 @@ export async function POST(request) {
       );
     }
 
-    // 2. prevent double-enroll
     const [existing] = await query(
       "SELECT enrollment_id FROM enrollment WHERE student_id = ? AND course_id = ?",
       [stu.student_id, courseId]
@@ -40,7 +37,6 @@ export async function POST(request) {
       );
     }
 
-    // 3. insert
     await query(
       `INSERT INTO enrollment 
          (student_id, course_id, enrollment_date, status, account_id)
@@ -48,7 +44,6 @@ export async function POST(request) {
       [stu.student_id, courseId, accountId]
     );
 
-    // 4. fetch the full student row you need
     const [newStudent] = await query(
       `SELECT 
          student_id,

@@ -12,14 +12,12 @@ export async function POST(req) {
     const { courseId } = await req.json();
     const account_id = session.account_id;
 
-    // Check student status only
     const studentResult = await query(
       `SELECT student_id FROM student WHERE account_id = ?`,
       [account_id]
     );
 
     if (studentResult.length > 0) {
-      // Handle student enrollment
       const existing = await query(
         `SELECT * FROM Enrollment WHERE account_id = ? AND course_id = ?`,
         [account_id, courseId]
@@ -33,7 +31,6 @@ export async function POST(req) {
         [account_id, courseId, studentResult[0].student_id]
       );
     } else {
-      // Handle non-student enrollment (teachers)
       const existing = await query(
         `SELECT * FROM OtherEnrollment WHERE account_id = ? AND course_id = ?`,
         [account_id, courseId]
