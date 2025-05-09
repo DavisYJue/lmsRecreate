@@ -87,6 +87,9 @@ const CourseDetails = () => {
       }));
       setUploadedFiles((prev) => ({ ...prev, [assignmentTitle]: [] }));
       setShowSubmitConfirm(null);
+      alert("Submit assignment successfully");
+      // Refresh the page
+      window.location.reload();
     } catch (error) {
       console.error("Submission error:", error);
       alert("Failed to submit files");
@@ -111,6 +114,8 @@ const CourseDetails = () => {
       });
       setShowUnsubmitConfirm(null);
       alert("Submission removed successfully");
+      // Refresh the page
+      window.location.reload();
     } catch (error) {
       console.error("Unsubmit error:", error);
       alert("Failed to remove submission");
