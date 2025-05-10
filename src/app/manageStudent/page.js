@@ -418,7 +418,7 @@ const ManageStudents = () => {
             title={`Confirm Add ${currentRole}`}
             message={`Are you sure you want to add ${
               confirmAdd[currentRole.toLowerCase() + "_name"]
-            } as a ${currentRole}?`}
+            } as a participant?`}
             onConfirm={addEntity}
             onCancel={() => setConfirmAdd(null)}
           />
